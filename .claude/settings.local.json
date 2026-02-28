@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -1 /Users/mikeward/Documents/github/vglyph/*.v)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(ls -1 /Users/mikeward/Documents/github/vglyph/docs/*.md)"
+    ]
+  }
+}

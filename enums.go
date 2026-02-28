@@ -1,0 +1,73 @@
+package glyph
+
+// Alignment specifies horizontal text alignment within the layout box.
+type Alignment int
+
+const (
+	AlignLeft   Alignment = iota // Left-aligned (default).
+	AlignCenter                  // Center-aligned.
+	AlignRight                   // Right-aligned.
+)
+
+// WrapMode defines how text wraps when exceeding max width.
+type WrapMode int
+
+const (
+	WrapWord     WrapMode = iota // Wrap at word boundaries.
+	WrapChar                     // Wrap at character boundaries.
+	WrapWordChar                 // Wrap at word, fallback to char if word too long.
+)
+
+// TextOrientation defines the flow direction of text.
+type TextOrientation int
+
+const (
+	OrientationHorizontal TextOrientation = iota
+	OrientationVertical                   // Vertical flow, upright chars (CJK).
+)
+
+// GradientDirection controls the axis of color interpolation.
+type GradientDirection int
+
+const (
+	GradientHorizontal GradientDirection = iota // Left to right.
+	GradientVertical                            // Top to bottom.
+)
+
+// Typeface specifies bold/italic style programmatically.
+type Typeface int
+
+const (
+	TypefaceRegular    Typeface = iota // Default — preserves font_name style.
+	TypefaceBold                       // Override to bold.
+	TypefaceItalic                     // Override to italic.
+	TypefaceBoldItalic                 // Override to bold+italic.
+)
+
+// CompositionPhase tracks IME preedit state.
+type CompositionPhase int
+
+const (
+	CompositionNone      CompositionPhase = iota
+	CompositionStarted
+	CompositionUpdating
+	CompositionCommitted
+)
+
+// ClauseStyle identifies the visual style of an IME clause.
+type ClauseStyle int
+
+const (
+	ClauseRaw       ClauseStyle = iota // Unconverted input.
+	ClauseConverted                    // Converted but not selected.
+	ClauseSelected                     // Currently selected clause.
+)
+
+// OperationType identifies the kind of undo operation.
+type OperationType int
+
+const (
+	OpInsert OperationType = iota
+	OpDelete
+	OpReplace
+)

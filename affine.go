@@ -1,0 +1,44 @@
+package glyph
+
+import "math"
+
+// AffineTransform encodes a 2D affine transform matrix:
+//
+//	[ XX  XY  X0 ]
+//	[ YX  YY  Y0 ]
+//	[  0   0   1 ]
+type AffineTransform struct {
+	XX float32
+	XY float32
+	YX float32
+	YY float32
+	X0 float32
+	Y0 float32
+}
+
+// Apply maps a point through the affine transform.
+func (t AffineTransform) Apply(x, y float32) (float32, float32) {
+	return t.XX*x + t.XY*y + t.X0, t.YX*x + t.YY*y + t.Y0
+}
+
+// AffineIdentity returns an identity transform.
+func AffineIdentity() AffineTransform {
+	return AffineTransform{XX: 1, YY: 1}
+}
+
+// AffineRotation returns a rotation transform in radians around origin.
+func AffineRotation(angle float32) AffineTransform {
+	c := float32(math.Cos(float64(angle)))
+	s := float32(math.Sin(float64(angle)))
+	return AffineTransform{XX: c, XY: -s, YX: s, YY: c}
+}
+
+// AffineTranslation returns a translation transform.
+func AffineTranslation(dx, dy float32) AffineTransform {
+	return AffineTransform{XX: 1, YY: 1, X0: dx, Y0: dy}
+}
+
+// AffineSkew returns a shear transform with direct skew factors.
+func AffineSkew(skewX, skewY float32) AffineTransform {
+	return AffineTransform{XX: 1, YY: 1, XY: skewX, YX: skewY}
+}
