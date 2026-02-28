@@ -95,6 +95,11 @@ func (b *Backend) DrawTexturedQuad(id glyph.TextureID, src, dst glyph.Rect, c gl
 	}
 	op.GeoM.Translate(float64(dst.X), float64(dst.Y))
 
+	// Scale logical coordinates to physical pixels.
+	if b.dpiScale != 1.0 {
+		op.GeoM.Scale(float64(b.dpiScale), float64(b.dpiScale))
+	}
+
 	// Color tinting via ColorScale.
 	op.ColorScale.Scale(
 		float32(c.R)/255.0,
@@ -123,6 +128,12 @@ func (b *Backend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(float64(w), float64(h))
 	op.GeoM.Translate(float64(dst.X), float64(dst.Y))
+
+	// Scale logical coordinates to physical pixels.
+	if b.dpiScale != 1.0 {
+		op.GeoM.Scale(float64(b.dpiScale), float64(b.dpiScale))
+	}
+
 	op.ColorScale.Scale(
 		float32(c.R)/255.0,
 		float32(c.G)/255.0,
@@ -170,6 +181,11 @@ func (b *Backend) DrawTexturedQuadTransformed(id glyph.TextureID,
 	m.SetElement(0, 2, float64(t.X0))
 	m.SetElement(1, 2, float64(t.Y0))
 	op.GeoM.Concat(m)
+
+	// Scale logical coordinates to physical pixels.
+	if b.dpiScale != 1.0 {
+		op.GeoM.Scale(float64(b.dpiScale), float64(b.dpiScale))
+	}
 
 	op.ColorScale.Scale(
 		float32(c.R)/255.0,

@@ -23,6 +23,7 @@ type Game struct {
 	ts      *glyph.TextSystem
 	backend *glyphebi.Backend
 	frame   int
+	scale   float64
 }
 
 func (g *Game) Update() error {
@@ -146,7 +147,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenW, screenH
+	return int(float64(outsideWidth) * g.scale),
+		int(float64(outsideHeight) * g.scale)
 }
 
 // --- helpers ---
@@ -248,11 +250,12 @@ func (g *Game) drawSpaced(x, y float32, text, font string, spacing float32) {
 }
 
 func main() {
+	scale := ebiten.Monitor().DeviceScaleFactor()
+
 	ebiten.SetWindowSize(screenW, screenH)
 	ebiten.SetWindowTitle("glyph demo")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	backend := glyphebi.New(nil, 1.0)
+	backend := glyphebi.New(nil, float32(scale))
 
 	ts, err := glyph.NewTextSystem(backend)
 	if err != nil {
@@ -263,6 +266,7 @@ func main() {
 	game := &Game{
 		ts:      ts,
 		backend: backend,
+		scale:   scale,
 	}
 
 	if err := ebiten.RunGame(game); err != nil {
