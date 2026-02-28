@@ -1,0 +1,336 @@
+package glyph
+
+import (
+	"testing"
+)
+
+// mockBackend records DrawBackend calls for testing.
+type mockBackend struct {
+	textures map[TextureID][]byte
+	nextID   TextureID
+}
+
+func newMockBackend() *mockBackend {
+	return &mockBackend{textures: make(map[TextureID][]byte)}
+}
+
+func (m *mockBackend) NewTexture(w, h int) TextureID {
+	m.nextID++
+	m.textures[m.nextID] = make([]byte, w*h*4)
+	return m.nextID
+}
+
+func (m *mockBackend) UpdateTexture(id TextureID, data []byte) {
+	if _, ok := m.textures[id]; ok {
+		m.textures[id] = append([]byte(nil), data...)
+	}
+}
+
+func (m *mockBackend) DeleteTexture(id TextureID) {
+	delete(m.textures, id)
+}
+
+func (m *mockBackend) DrawTexturedQuad(TextureID, Rect, Rect, Color)                       {}
+func (m *mockBackend) DrawFilledRect(Rect, Color)                                           {}
+func (m *mockBackend) DrawTexturedQuadTransformed(TextureID, Rect, Rect, Color, AffineTransform) {}
+func (m *mockBackend) DPIScale() float32                                                    { return 1.0 }
+
+// makeSyntheticBitmap creates a solid-colored RGBA bitmap.
+func makeSyntheticBitmap(w, h int, r, g, b, a byte) Bitmap {
+	data := make([]byte, w*h*4)
+	for i := 0; i < len(data); i += 4 {
+		data[i+0] = r
+		data[i+1] = g
+		data[i+2] = b
+		data[i+3] = a
+	}
+	return Bitmap{Width: w, Height: h, Channels: 4, Data: data}
+}
+
+func TestAtlasInsertSingle(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 256, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp := makeSyntheticBitmap(10, 12, 255, 255, 255, 200)
+	cached, reset, _, err := atlas.InsertBitmap(bmp, 3, 11)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reset {
+		t.Error("unexpected page reset on first insert")
+	}
+	if cached.Width != 10 || cached.Height != 12 {
+		t.Errorf("cached size = %dx%d, want 10x12", cached.Width, cached.Height)
+	}
+	if cached.Left != 3 || cached.Top != 11 {
+		t.Errorf("cached bearing = (%d,%d), want (3,11)", cached.Left, cached.Top)
+	}
+	if cached.X != 0 || cached.Y != 0 {
+		t.Errorf("cached pos = (%d,%d), want (0,0)", cached.X, cached.Y)
+	}
+}
+
+func TestAtlasInsertMultipleSameShelf(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 256, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp1 := makeSyntheticBitmap(10, 12, 255, 0, 0, 255)
+	bmp2 := makeSyntheticBitmap(8, 12, 0, 255, 0, 255)
+
+	c1, _, _, err := atlas.InsertBitmap(bmp1, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c2, _, _, err := atlas.InsertBitmap(bmp2, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Both should be on shelf 0, same Y.
+	if c1.Y != c2.Y {
+		t.Errorf("expected same shelf: Y1=%d Y2=%d", c1.Y, c2.Y)
+	}
+	if c2.X != c1.X+c1.Width {
+		t.Errorf("expected adjacent: c2.X=%d, want %d", c2.X, c1.X+c1.Width)
+	}
+}
+
+func TestAtlasNewShelfForTallGlyph(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 256, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp1 := makeSyntheticBitmap(10, 12, 255, 0, 0, 255)
+	bmp2 := makeSyntheticBitmap(10, 30, 0, 255, 0, 255)
+
+	c1, _, _, err := atlas.InsertBitmap(bmp1, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c2, _, _, err := atlas.InsertBitmap(bmp2, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// bmp2 is much taller, should get a new shelf.
+	if c2.Y <= c1.Y {
+		t.Errorf("expected new shelf: c2.Y=%d should be > c1.Y=%d", c2.Y, c1.Y)
+	}
+}
+
+func TestAtlasPageGrow(t *testing.T) {
+	backend := newMockBackend()
+	// Small page that will need to grow.
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	// Fill with 32px tall glyphs — first two fit (64px), third triggers grow.
+	for i := 0; i < 5; i++ {
+		bmp := makeSyntheticBitmap(60, 32, 255, 255, 255, 255)
+		_, _, _, err := atlas.InsertBitmap(bmp, 0, 0)
+		if err != nil {
+			t.Fatalf("insert %d failed: %v", i, err)
+		}
+	}
+
+	page := atlas.Pages[atlas.CurrentPage]
+	if page.Height <= 64 {
+		t.Errorf("expected page growth: height=%d", page.Height)
+	}
+}
+
+func TestAtlasMultiPage(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+	atlas.MaxHeight = 128 // Limit growth to force new pages.
+
+	// Fill until we get multiple pages.
+	for i := 0; i < 20; i++ {
+		bmp := makeSyntheticBitmap(60, 32, 255, 255, 255, 255)
+		_, _, _, err := atlas.InsertBitmap(bmp, 0, 0)
+		if err != nil {
+			t.Fatalf("insert %d failed: %v", i, err)
+		}
+	}
+
+	if len(atlas.Pages) < 2 {
+		t.Errorf("expected multiple pages, got %d", len(atlas.Pages))
+	}
+}
+
+func TestAtlasPageReset(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+	atlas.MaxPages = 2
+	atlas.MaxHeight = 64 // No growth allowed — forces new pages/resets sooner.
+
+	resetSeen := false
+	for i := 0; i < 50; i++ {
+		bmp := makeSyntheticBitmap(60, 30, 255, 255, 255, 255)
+		_, reset, _, err := atlas.InsertBitmap(bmp, 0, 0)
+		if err != nil {
+			t.Fatalf("insert %d failed: %v", i, err)
+		}
+		if reset {
+			resetSeen = true
+		}
+	}
+
+	if !resetSeen {
+		t.Error("expected at least one page reset")
+	}
+}
+
+func TestAtlasSwapAndUpload(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp := makeSyntheticBitmap(10, 10, 128, 64, 32, 255)
+	_, _, _, err = atlas.InsertBitmap(bmp, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !atlas.Pages[0].Dirty {
+		t.Error("expected page dirty after insert")
+	}
+
+	atlas.SwapAndUpload()
+
+	if atlas.Pages[0].Dirty {
+		t.Error("expected page clean after upload")
+	}
+}
+
+func TestAtlasEmptyGlyph(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 256, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp := Bitmap{Width: 0, Height: 0, Channels: 4, Data: nil}
+	cached, reset, _, err := atlas.InsertBitmap(bmp, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reset {
+		t.Error("unexpected reset for empty glyph")
+	}
+	if cached.Width != 0 || cached.Height != 0 {
+		t.Errorf("expected zero-size cached glyph, got %dx%d",
+			cached.Width, cached.Height)
+	}
+}
+
+func TestAtlasOversizedGlyph(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 256, 256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	bmp := makeSyntheticBitmap(5000, 5000, 255, 255, 255, 255)
+	_, _, _, err = atlas.InsertBitmap(bmp, 0, 0)
+	if err == nil {
+		t.Error("expected error for oversized glyph")
+	}
+}
+
+func TestAtlasCleanup(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	// Manually add garbage.
+	atlas.Garbage = append(atlas.Garbage, TextureID(999))
+	backend.textures[TextureID(999)] = []byte{1, 2, 3}
+
+	atlas.Cleanup(1)
+	if len(atlas.Garbage) != 0 {
+		t.Error("expected garbage cleared after cleanup")
+	}
+	if _, ok := backend.textures[TextureID(999)]; ok {
+		t.Error("expected texture 999 deleted")
+	}
+}
+
+func TestAtlasFree(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	texCount := len(backend.textures)
+	if texCount == 0 {
+		t.Fatal("expected at least one texture after creation")
+	}
+
+	atlas.Free()
+
+	if len(backend.textures) != 0 {
+		t.Errorf("expected all textures freed, got %d", len(backend.textures))
+	}
+}
+
+func TestAtlasCopyBitmapData(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+
+	// Insert a 2x2 red bitmap.
+	bmp := makeSyntheticBitmap(2, 2, 255, 0, 0, 255)
+	_, _, _, err = atlas.InsertBitmap(bmp, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page := &atlas.Pages[0]
+	// Check pixel at (0,0) in staging back.
+	idx := 0 // (0*64+0)*4
+	if page.StagingBack[idx] != 255 || page.StagingBack[idx+3] != 255 {
+		t.Errorf("pixel (0,0): R=%d A=%d, want R=255 A=255",
+			page.StagingBack[idx], page.StagingBack[idx+3])
+	}
+	// Check pixel at (1,0).
+	idx = 4
+	if page.StagingBack[idx] != 255 || page.StagingBack[idx+1] != 0 {
+		t.Errorf("pixel (1,0): R=%d G=%d, want R=255 G=0",
+			page.StagingBack[idx], page.StagingBack[idx+1])
+	}
+}
