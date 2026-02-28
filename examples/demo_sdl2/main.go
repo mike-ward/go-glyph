@@ -8,43 +8,35 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/veandco/go-sdl2/sdl"
 	"glyph"
 	glyphsdl "glyph/backend/sdl2"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 func init() { runtime.LockOSThread() }
 
 const (
 	screenW = 800
-	screenH = 600
+	screenH = 700
 )
 
 // app holds state shared between the main loop and the
 // event-watch callback (which fires during live resize).
 type app struct {
 	renderer *sdl.Renderer
-	target   *sdl.Texture // fixed-size render target
 	ts       *glyph.TextSystem
 	frame    int
-	targetW  int32
-	targetH  int32
 }
 
 func (a *app) render() {
-	// Draw text to the fixed-size render target.
-	a.renderer.SetRenderTarget(a.target)
+	// Reset viewport to full output so content isn't
+	// clipped to the initial window size after resize.
+	a.renderer.SetViewport(nil)
 	a.renderer.SetDrawColor(245, 245, 245, 255)
 	a.renderer.Clear()
 	drawAll(a.ts, a.frame)
 	a.ts.Commit()
-
-	// Blit render target to screen at top-left.
-	a.renderer.SetRenderTarget(nil)
-	a.renderer.SetDrawColor(245, 245, 245, 255)
-	a.renderer.Clear()
-	dst := sdl.Rect{X: 0, Y: 0, W: a.targetW, H: a.targetH}
-	a.renderer.Copy(a.target, nil, &dst)
 	a.renderer.Present()
 	a.frame++
 }
@@ -65,30 +57,19 @@ func main() {
 	defer window.Destroy()
 
 	renderer, err := sdl.CreateRenderer(window, -1,
-		sdl.RENDERER_ACCELERATED)
+		sdl.RENDERER_ACCELERATED|sdl.RENDERER_PRESENTVSYNC)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer renderer.Destroy()
 
 	// Compute DPI scale from physical/logical size ratio.
-	outW, outH, _ := renderer.GetOutputSize()
+	outW, _, _ := renderer.GetOutputSize()
 	winW, _ := window.GetSize()
 	dpiScale := float32(1.0)
 	if winW > 0 {
 		dpiScale = float32(outW) / float32(winW)
 	}
-
-	// Fixed-size render target at initial physical resolution.
-	// Text is always drawn here; the target never resizes.
-	target, err := renderer.CreateTexture(
-		uint32(sdl.PIXELFORMAT_RGBA32),
-		sdl.TEXTUREACCESS_TARGET,
-		outW, outH)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer target.Destroy()
 
 	backend := glyphsdl.New(renderer, dpiScale)
 	defer backend.Destroy()
@@ -99,24 +80,7 @@ func main() {
 	}
 	defer ts.Free()
 
-	a := &app{
-		renderer: renderer,
-		target:   target,
-		ts:       ts,
-		targetW:  outW,
-		targetH:  outH,
-	}
-
-	// Redraw during macOS's modal resize loop (PollEvent
-	// is blocked while the user drags a window edge).
-	sdl.AddEventWatchFunc(func(ev sdl.Event, _ interface{}) bool {
-		if we, ok := ev.(*sdl.WindowEvent); ok {
-			if we.Event == sdl.WINDOWEVENT_SIZE_CHANGED {
-				a.render()
-			}
-		}
-		return true
-	}, nil)
+	a := &app{renderer: renderer, ts: ts}
 
 	running := true
 	for running {
@@ -127,7 +91,6 @@ func main() {
 			}
 		}
 		a.render()
-		sdl.Delay(16) // ~60 fps cap
 	}
 }
 
