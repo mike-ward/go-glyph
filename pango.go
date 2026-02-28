@@ -436,6 +436,166 @@ func PangoAttrFontFeaturesNew(features string) *C.PangoAttribute {
 	return C.pango_attr_font_features_new(cs)
 }
 
+// --- Pango font helpers ---
+
+// PangoFontW wraps *PangoFont.
+type PangoFontW struct {
+	ptr *C.PangoFont
+}
+
+// Close unrefs the font.
+func (f *PangoFontW) Close() {
+	if f.ptr != nil {
+		C.g_object_unref(C.gpointer(unsafe.Pointer(f.ptr)))
+		f.ptr = nil
+	}
+}
+
+// PangoFontMetricsW wraps *PangoFontMetrics.
+type PangoFontMetricsW struct {
+	ptr *C.PangoFontMetrics
+}
+
+// Close unrefs the metrics.
+func (m *PangoFontMetricsW) Close() {
+	if m.ptr != nil {
+		C.pango_font_metrics_unref(m.ptr)
+		m.ptr = nil
+	}
+}
+
+// PangoContextLoadFont loads a font matching the description.
+func PangoContextLoadFont(ctx *C.PangoContext, desc *C.PangoFontDescription) PangoFontW {
+	return PangoFontW{ptr: C.pango_context_load_font(ctx, desc)}
+}
+
+// PangoFontGetMetrics returns metrics for the font and language.
+func PangoFontGetMetrics(font *C.PangoFont, lang *C.PangoLanguage) PangoFontMetricsW {
+	return PangoFontMetricsW{ptr: C.pango_font_get_metrics(font, lang)}
+}
+
+// PangoGetDefaultLanguage returns the default language.
+func PangoGetDefaultLanguage() *C.PangoLanguage {
+	return C.pango_language_get_default()
+}
+
+// PangoFontMetricsGetAscent returns ascent in Pango units.
+func PangoFontMetricsGetAscent(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_ascent(m))
+}
+
+// PangoFontMetricsGetDescent returns descent in Pango units.
+func PangoFontMetricsGetDescent(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_descent(m))
+}
+
+// PangoFontDescGetSize returns the size in Pango units.
+func PangoFontDescGetSize(desc *C.PangoFontDescription) int {
+	return int(C.pango_font_description_get_size(desc))
+}
+
+// PangoFT2FontGetFace returns the FT_Face from a PangoFont.
+// Deprecated but needed for cache key generation.
+func PangoFT2FontGetFace(font *C.PangoFont) C.FT_Face {
+	return C.pango_ft2_font_get_face(font)
+}
+
+// PangoFontDescNew creates a new empty font description.
+func PangoFontDescNew() PangoFontDescW {
+	return PangoFontDescW{ptr: C.pango_font_description_new()}
+}
+
+// PangoFontDescGetFamily returns the font family name.
+func PangoFontDescGetFamily(desc *C.PangoFontDescription) string {
+	fam := C.pango_font_description_get_family(desc)
+	if fam == nil {
+		return ""
+	}
+	return C.GoString(fam)
+}
+
+// PangoFontDescSetFamily sets the font family.
+func PangoFontDescSetFamily(desc *C.PangoFontDescription, family string) {
+	cs := C.CString(family)
+	defer C.free(unsafe.Pointer(cs))
+	C.pango_font_description_set_family(desc, cs)
+}
+
+// PangoContextSetBaseGravity sets the base gravity for the context.
+func PangoContextSetBaseGravity(ctx *C.PangoContext) {
+	C.pango_context_set_base_gravity(ctx, C.PANGO_GRAVITY_SOUTH)
+	C.pango_context_set_gravity_hint(ctx, C.PANGO_GRAVITY_HINT_NATURAL)
+	C.pango_context_set_matrix(ctx, nil)
+	C.pango_context_changed(ctx)
+}
+
+// PangoAttrListCopy copies a PangoAttrList.
+func PangoAttrListCopy(list *C.PangoAttrList) PangoAttrListW {
+	return PangoAttrListW{ptr: C.pango_attr_list_copy(list)}
+}
+
+// PangoLayoutGetAttributes returns the attribute list from a layout.
+func PangoLayoutGetAttributes(layout *C.PangoLayout) *C.PangoAttrList {
+	return C.pango_layout_get_attributes(layout)
+}
+
+// PangoLayoutGetFontDescription returns the font description of a layout.
+func PangoLayoutGetFontDescription(layout *C.PangoLayout) *C.PangoFontDescription {
+	return C.pango_layout_get_font_description(layout)
+}
+
+// PangoLayoutGetContext returns the context from a layout.
+func PangoLayoutGetContext(layout *C.PangoLayout) *C.PangoContext {
+	return C.pango_layout_get_context(layout)
+}
+
+// PangoContextGetMetrics returns metrics for a font description.
+func PangoContextGetMetrics(ctx *C.PangoContext, desc *C.PangoFontDescription, lang *C.PangoLanguage) *C.PangoFontMetrics {
+	return C.pango_context_get_metrics(ctx, desc, lang)
+}
+
+// PangoFontMetricsGetStrikethroughPosition returns position in Pango units.
+func PangoFontMetricsGetStrikethroughPosition(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_strikethrough_position(m))
+}
+
+// PangoFontMetricsGetStrikethroughThickness returns thickness in Pango units.
+func PangoFontMetricsGetStrikethroughThickness(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_strikethrough_thickness(m))
+}
+
+// PangoFontMetricsGetUnderlinePosition returns position in Pango units.
+func PangoFontMetricsGetUnderlinePosition(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_underline_position(m))
+}
+
+// PangoFontMetricsGetUnderlineThickness returns thickness in Pango units.
+func PangoFontMetricsGetUnderlineThickness(m *C.PangoFontMetrics) int {
+	return int(C.pango_font_metrics_get_underline_thickness(m))
+}
+
+// PangoLayoutGetLineCount returns the number of lines.
+func PangoLayoutGetLineCount(layout *C.PangoLayout) int {
+	return int(C.pango_layout_get_line_count(layout))
+}
+
+// PangoLayoutGetLogAttrsReadonly returns readonly log attrs and count.
+func PangoLayoutGetLogAttrsReadonly(layout *C.PangoLayout) (*C.PangoLogAttr, int) {
+	var n C.gint
+	ptr := C.pango_layout_get_log_attrs_readonly(layout, &n)
+	return ptr, int(n)
+}
+
+// PangoAttrFontDescNew creates a font description attribute.
+func PangoAttrFontDescNew(desc *C.PangoFontDescription) *C.PangoAttribute {
+	return C.pango_attr_font_desc_new(desc)
+}
+
+// PangoAttrShapeNew creates a shape attribute (for inline objects).
+func PangoAttrShapeNew(ink, logical *C.PangoRectangle) *C.PangoAttribute {
+	return C.pango_attr_shape_new(ink, logical)
+}
+
 // --- Helper ---
 
 func errorf(format string, args ...any) error {
