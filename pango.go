@@ -601,3 +601,16 @@ func PangoAttrShapeNew(ink, logical *C.PangoRectangle) *C.PangoAttribute {
 func errorf(format string, args ...any) error {
 	return fmt.Errorf(format, args...)
 }
+
+// getFontFamilyName extracts the family name from an FT_Face
+// stored as unsafe.Pointer.
+func getFontFamilyName(facePtr unsafe.Pointer) string {
+	if facePtr == nil {
+		return "Unknown"
+	}
+	face := (C.FT_Face)(facePtr)
+	if face.family_name == nil {
+		return "Unknown"
+	}
+	return C.GoString(face.family_name)
+}
