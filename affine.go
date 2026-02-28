@@ -42,3 +42,16 @@ func AffineTranslation(dx, dy float32) AffineTransform {
 func AffineSkew(skewX, skewY float32) AffineTransform {
 	return AffineTransform{XX: 1, YY: 1, XY: skewX, YX: skewY}
 }
+
+// Multiply returns the composition of two transforms: a then b.
+// Result maps point p as: Multiply(a, b).Apply(p) == a.Apply(b.Apply(p)).
+func (a AffineTransform) Multiply(b AffineTransform) AffineTransform {
+	return AffineTransform{
+		XX: a.XX*b.XX + a.XY*b.YX,
+		XY: a.XX*b.XY + a.XY*b.YY,
+		YX: a.YX*b.XX + a.YY*b.YX,
+		YY: a.YX*b.XY + a.YY*b.YY,
+		X0: a.XX*b.X0 + a.XY*b.Y0 + a.X0,
+		Y0: a.YX*b.X0 + a.YY*b.Y0 + a.Y0,
+	}
+}
