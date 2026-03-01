@@ -5,6 +5,12 @@
 *.so
 *.dylib
 
+# Built example binaries
+examples/demo/demo
+examples/demo_gpu/demo_gpu
+examples/demo_sdl2/demo_sdl2
+examples/showcase_gpu/showcase_gpu
+
 # Test binary
 *.test
 
