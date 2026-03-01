@@ -1,4 +1,16 @@
+# ignore all
+*
+# unignore files with extensions
+!*.*
+# unignore all dirs
+!*/
+### Above combination will ignore all files without extension
+
+!Makefile
+!LICENSE
+
 # Binaries
+main
 *.exe
 *.exe~
 *.dll
@@ -6,10 +18,6 @@
 *.dylib
 
 # Built example binaries
-examples/demo/demo
-examples/demo_gpu/demo_gpu
-examples/demo_sdl2/demo_sdl2
-examples/showcase_gpu/showcase_gpu
 
 # Test binary
 *.test
