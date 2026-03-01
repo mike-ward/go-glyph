@@ -1,14 +1,14 @@
-module glyph/examples/demo_gpu
+module github.com/mike-ward/go-glyph/examples/demo_gpu
 
 go 1.25.0
 
 require (
+	github.com/mike-ward/go-glyph v0.0.0
+	github.com/mike-ward/go-glyph/backend/gpu v0.0.0
 	github.com/veandco/go-sdl2 v0.4.40
-	glyph v0.0.0
-	glyph/backend/gpu v0.0.0
 )
 
 replace (
-	glyph => ../..
-	glyph/backend/gpu => ../../backend/gpu
+	github.com/mike-ward/go-glyph => ../..
+	github.com/mike-ward/go-glyph/backend/gpu => ../../backend/gpu
 )

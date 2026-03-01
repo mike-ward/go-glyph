@@ -1,10 +1,10 @@
-module glyph/backend/ebitengine
+module github.com/mike-ward/go-glyph/backend/ebitengine
 
 go 1.25.0
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	glyph v0.0.0
+	github.com/mike-ward/go-glyph v0.0.0
 )
 
 require (
@@ -16,4 +16,4 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 )
 
-replace glyph => ../..
+replace github.com/mike-ward/go-glyph => ../..

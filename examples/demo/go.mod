@@ -1,11 +1,11 @@
-module glyph/examples/demo
+module github.com/mike-ward/go-glyph/examples/demo
 
 go 1.25.0
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	glyph v0.0.0
-	glyph/backend/ebitengine v0.0.0
+	github.com/mike-ward/go-glyph v0.0.0
+	github.com/mike-ward/go-glyph/backend/ebitengine v0.0.0
 )
 
 require (
@@ -18,6 +18,6 @@ require (
 )
 
 replace (
-	glyph => ../..
-	glyph/backend/ebitengine => ../../backend/ebitengine
+	github.com/mike-ward/go-glyph => ../..
+	github.com/mike-ward/go-glyph/backend/ebitengine => ../../backend/ebitengine
 )

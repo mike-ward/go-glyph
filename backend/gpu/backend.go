@@ -3,7 +3,7 @@ package gpu
 import (
 	"unsafe"
 
-	"glyph"
+	"github.com/mike-ward/go-glyph"
 )
 
 // Backend implements glyph.DrawBackend using raw Metal via CGo.

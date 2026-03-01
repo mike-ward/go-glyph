@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/veandco/go-sdl2/sdl"
-	"glyph"
+	"github.com/mike-ward/go-glyph"
 )
 
 // Backend implements glyph.DrawBackend using SDL2.
