@@ -6,10 +6,10 @@ import (
 	"github.com/mike-ward/go-glyph"
 )
 
-// Backend implements glyph.DrawBackend using raw Metal via CGo.
+// Backend implements glyph.DrawBackend using a GPU backend via CGo.
 // SDL2 provides the window; rendering bypasses SDL2's renderer.
 type Backend struct {
-	metal    *metalCtx
+	gpu      *gpuCtx
 	batch    batch
 	widths   map[glyph.TextureID]int
 	heights  map[glyph.TextureID]int
@@ -17,18 +17,17 @@ type Backend struct {
 }
 
 // New creates a GPU backend. sdlWindow is an unsafe.Pointer to
-// the SDL_Window (created with SDL_WINDOW_METAL). dpiScale is
-// physical pixels / logical pixels.
+// the SDL_Window. dpiScale is physical pixels / logical pixels.
 func New(sdlWindow unsafe.Pointer, dpiScale float32) (*Backend, error) {
 	if dpiScale <= 0 {
 		dpiScale = 1.0
 	}
-	m, err := metalInitGo(sdlWindow, dpiScale)
+	g, err := gpuInitGo(sdlWindow, dpiScale)
 	if err != nil {
 		return nil, err
 	}
 	return &Backend{
-		metal:    m,
+		gpu:      g,
 		widths:   make(map[glyph.TextureID]int),
 		heights:  make(map[glyph.TextureID]int),
 		dpiScale: dpiScale,
@@ -37,7 +36,7 @@ func New(sdlWindow unsafe.Pointer, dpiScale float32) (*Backend, error) {
 
 // NewTexture allocates a new RGBA texture.
 func (b *Backend) NewTexture(width, height int) glyph.TextureID {
-	id := glyph.TextureID(b.metal.newTexture(width, height))
+	id := glyph.TextureID(b.gpu.newTexture(width, height))
 	b.widths[id] = width
 	b.heights[id] = height
 	return id
@@ -47,12 +46,12 @@ func (b *Backend) NewTexture(width, height int) glyph.TextureID {
 func (b *Backend) UpdateTexture(id glyph.TextureID, data []byte) {
 	w := b.widths[id]
 	h := b.heights[id]
-	b.metal.updateTexture(uint64(id), data, w, h)
+	b.gpu.updateTexture(uint64(id), data, w, h)
 }
 
 // DeleteTexture releases a texture.
 func (b *Backend) DeleteTexture(id glyph.TextureID) {
-	b.metal.deleteTexture(uint64(id))
+	b.gpu.deleteTexture(uint64(id))
 	delete(b.widths, id)
 	delete(b.heights, id)
 }
@@ -136,22 +135,22 @@ func (b *Backend) BeginFrame() {
 	b.batch.reset()
 }
 
-// EndFrame flushes batched draw commands to Metal and presents.
+// EndFrame flushes batched draw commands to the GPU and presents.
 func (b *Backend) EndFrame(clearR, clearG, clearB, clearA float32,
 	logicalW, logicalH int) error {
-	return b.metal.render(b.batch.verts, b.batch.cmds,
+	return b.gpu.render(b.batch.verts, b.batch.cmds,
 		clearR, clearG, clearB, clearA,
 		logicalW, logicalH)
 }
 
 // DrawableSize returns the physical drawable size in pixels.
 func (b *Backend) DrawableSize() (int, int) {
-	return b.metal.drawableSize()
+	return b.gpu.drawableSize()
 }
 
-// Destroy releases all Metal resources.
+// Destroy releases all GPU resources.
 func (b *Backend) Destroy() {
-	b.metal.destroy()
+	b.gpu.destroy()
 	b.widths = nil
 	b.heights = nil
 }

@@ -22,7 +22,7 @@ and editing with pluggable rendering backends.
 - **Text mutation** - insert, delete, selection, undo/redo
 - **IME support** with composition/preedit rendering
 - **Accessibility** - screen reader announcements, text field nodes
-- **Pluggable backends** - Ebitengine, SDL2, GPU/Metal
+- **Pluggable backends** - Ebitengine, SDL2, GPU (Metal/OpenGL)
 
 ## Prerequisites
 
@@ -32,25 +32,26 @@ go-glyph uses CGo bindings to the following C libraries:
 - FreeType2
 - FontConfig
 - GLib
+- SDL2 (for SDL2 and GPU backends)
 
 ### macOS (Homebrew)
 
 ```sh
-brew install pango freetype fontconfig glib
+brew install pango freetype fontconfig glib sdl2
 ```
 
 ### Ubuntu / Debian
 
 ```sh
 sudo apt install libpango1.0-dev libfreetype-dev \
-    libfontconfig1-dev libglib2.0-dev
+    libfontconfig1-dev libglib2.0-dev libsdl2-dev
 ```
 
 ### Fedora
 
 ```sh
 sudo dnf install pango-devel freetype-devel \
-    fontconfig-devel glib2-devel
+    fontconfig-devel glib2-devel SDL2-devel
 ```
 
 ## Installation
@@ -193,7 +194,7 @@ type DrawBackend interface {
 |---------|---------|-------|
 | Ebitengine | `go-glyph/backend/ebitengine` | Pure Go game engine |
 | SDL2 | `go-glyph/backend/sdl2` | SDL2 renderer |
-| GPU/Metal | `go-glyph/backend/gpu` | Direct Metal rendering |
+| GPU | `go-glyph/backend/gpu` | Metal (macOS), OpenGL 3.3 (Linux) |
 
 Each backend has its own `go.mod` with framework-specific
 dependencies. Import the one matching the target framework.
@@ -216,10 +217,18 @@ backend := glyphsdl.New(sdlRenderer, float32(dpiScale))
 defer backend.Destroy()
 ```
 
-### GPU/Metal
+### GPU (Metal / OpenGL)
+
+Uses Metal on macOS and OpenGL 3.3 on Linux. The API is identical
+on both platforms:
 
 ```go
 import glyphgpu "github.com/mike-ward/go-glyph/backend/gpu"
+
+// Create window with gpu.WindowFlag() (Metal or OpenGL).
+window, _ := sdl.CreateWindow("demo",
+    sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
+    800, 600, sdl.WINDOW_SHOWN|gpu.WindowFlag())
 
 backend, err := glyphgpu.New(sdlWindow, float32(dpiScale))
 defer backend.Destroy()
@@ -479,7 +488,7 @@ word echo, line changes, selection changes) with debouncing.
 |---------|-------------|
 | `examples/demo` | Ebitengine demo - basic text, styles, wrapping, emoji, CJK, RTL |
 | `examples/demo_sdl2` | Same demo using SDL2 backend |
-| `examples/demo_gpu` | Same demo using GPU/Metal backend |
+| `examples/demo_gpu` | Same demo using GPU backend (Metal/OpenGL) |
 | `examples/showcase_gpu` | Feature gallery (22 sections) |
 
 Run an example:
