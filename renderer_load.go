@@ -155,7 +155,7 @@ func LoadStrokedGlyph(atlas *GlyphAtlas, stroker FTStroker,
 	if C.FT_Get_Glyph(glyphSlot, &ftGlyph) != 0 {
 		return LoadGlyphResult{}, fmt.Errorf("FT_Get_Glyph failed")
 	}
-	defer C.FT_Done_Glyph(ftGlyph)
+	defer func() { C.FT_Done_Glyph(ftGlyph) }()
 
 	// Apply stroke.
 	if C.FT_Glyph_Stroke(&ftGlyph, stroker.ptr, 1) != 0 {
