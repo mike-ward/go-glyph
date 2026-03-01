@@ -2,6 +2,30 @@ package glyph
 
 import "sort"
 
+// maxDistance is a sentinel for "no match found" distance comparisons.
+const maxDistance float32 = 1e9
+
+// buildPositionCaches pre-sorts cursor and word boundary positions.
+// Called once after layout construction.
+func (l *Layout) buildPositionCaches() {
+	l.cursorPositions = l.collectPositions(func(a LogAttr) bool { return a.IsCursorPosition })
+	l.wordStarts = l.collectPositions(func(a LogAttr) bool { return a.IsWordStart })
+	l.wordEnds = l.collectPositions(func(a LogAttr) bool { return a.IsWordEnd })
+}
+
+func (l *Layout) collectPositions(pred func(LogAttr) bool) []int {
+	positions := make([]int, 0, len(l.LogAttrByIndex))
+	for byteIdx, attrIdx := range l.LogAttrByIndex {
+		if attrIdx >= 0 && attrIdx < len(l.LogAttrs) {
+			if pred(l.LogAttrs[attrIdx]) {
+				positions = append(positions, byteIdx)
+			}
+		}
+	}
+	sort.Ints(positions)
+	return positions
+}
+
 // HitTestRect returns the bounding box of the character at (x, y)
 // relative to the layout origin. Returns ok=false if no character
 // is found.
@@ -47,7 +71,7 @@ func (l *Layout) GetClosestOffset(x, y float32) int {
 
 	// Find closest line vertically.
 	closestLineIdx := 0
-	minDistY := float32(1e9)
+	minDistY := maxDistance
 	for i, line := range l.Lines {
 		var dist float32
 		if y >= line.Rect.Y && y <= line.Rect.Y+line.Rect.Height {
@@ -67,7 +91,7 @@ func (l *Layout) GetClosestOffset(x, y float32) int {
 
 	// Find closest char in line.
 	closestCharIdx := targetLine.StartIndex
-	minDistX := float32(1e9)
+	minDistX := maxDistance
 	foundAny := false
 
 	for i := targetLine.StartIndex; i < lineEnd; i++ {
@@ -87,7 +111,7 @@ func (l *Layout) GetClosestOffset(x, y float32) int {
 
 	// If x is past rightmost character, return line end.
 	if foundAny {
-		lastRight := float32(-1e9)
+		lastRight := -maxDistance
 		for i := targetLine.StartIndex; i < lineEnd; i++ {
 			ri, ok := l.CharRectByIndex[i]
 			if !ok {
@@ -137,8 +161,8 @@ func (l *Layout) GetSelectionRects(start, end int) []Rect {
 			continue
 		}
 
-		minX := float32(1e9)
-		maxX := float32(-1e9)
+		minX := maxDistance
+		maxX := -maxDistance
 		found := false
 		for i := overlapStart; i < overlapEnd; i++ {
 			ri, ok := l.CharRectByIndex[i]
@@ -224,18 +248,12 @@ func (l *Layout) GetCursorPos(byteIndex int) (CursorPosition, bool) {
 }
 
 // GetValidCursorPositions returns sorted byte indices that are
-// valid cursor positions.
+// valid cursor positions. Uses pre-built cache.
 func (l *Layout) GetValidCursorPositions() []int {
-	positions := make([]int, 0, len(l.LogAttrByIndex))
-	for byteIdx, attrIdx := range l.LogAttrByIndex {
-		if attrIdx >= 0 && attrIdx < len(l.LogAttrs) {
-			if l.LogAttrs[attrIdx].IsCursorPosition {
-				positions = append(positions, byteIdx)
-			}
-		}
+	if l.cursorPositions == nil {
+		l.buildPositionCaches()
 	}
-	sort.Ints(positions)
-	return positions
+	return l.cursorPositions
 }
 
 // MoveCursorLeft returns the previous valid cursor position.
@@ -270,31 +288,21 @@ func (l *Layout) MoveCursorRight(byteIndex int) int {
 }
 
 // getWordStarts returns sorted byte indices that are word starts.
+// Uses pre-built cache.
 func (l *Layout) getWordStarts() []int {
-	starts := make([]int, 0, len(l.LogAttrByIndex))
-	for byteIdx, attrIdx := range l.LogAttrByIndex {
-		if attrIdx >= 0 && attrIdx < len(l.LogAttrs) {
-			if l.LogAttrs[attrIdx].IsWordStart {
-				starts = append(starts, byteIdx)
-			}
-		}
+	if l.wordStarts == nil {
+		l.buildPositionCaches()
 	}
-	sort.Ints(starts)
-	return starts
+	return l.wordStarts
 }
 
 // getWordEnds returns sorted byte indices that are word ends.
+// Uses pre-built cache.
 func (l *Layout) getWordEnds() []int {
-	ends := make([]int, 0, len(l.LogAttrByIndex))
-	for byteIdx, attrIdx := range l.LogAttrByIndex {
-		if attrIdx >= 0 && attrIdx < len(l.LogAttrs) {
-			if l.LogAttrs[attrIdx].IsWordEnd {
-				ends = append(ends, byteIdx)
-			}
-		}
+	if l.wordEnds == nil {
+		l.buildPositionCaches()
 	}
-	sort.Ints(ends)
-	return ends
+	return l.wordEnds
 }
 
 // MoveCursorWordLeft returns the previous word start.
@@ -449,11 +457,11 @@ func (l *Layout) GetWordAtIndex(byteIndex int) (int, int) {
 				break
 			}
 		}
-		distToStart := 1000000
+		distToStart := int(maxDistance)
 		if nearestStart >= 0 {
 			distToStart = nearestStart - byteIndex
 		}
-		distToEnd := 1000000
+		distToEnd := int(maxDistance)
 		if nearestEnd >= 0 {
 			distToEnd = byteIndex - nearestEnd
 		}
@@ -532,7 +540,7 @@ func (l *Layout) GetFontNameAtIndex(index int) string {
 func (l *Layout) findClosestIndexInLine(line Line, targetX float32) int {
 	lineEnd := line.StartIndex + line.Length
 	closestIdx := line.StartIndex
-	minDist := float32(1e9)
+	minDist := maxDistance
 
 	for i := line.StartIndex; i < lineEnd; i++ {
 		ri, ok := l.CharRectByIndex[i]

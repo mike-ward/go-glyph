@@ -64,7 +64,11 @@ func FTBitmapToBitmap(bmp *C.FT_Bitmap, ftFace C.FT_Face, targetHeight int) (Bit
 		return Bitmap{}, fmt.Errorf("bitmap size overflow: %dx%d", width, height)
 	}
 
-	data := make([]byte, outLen)
+	// Allocation deferred for LCD mode (different output width).
+	var data []byte
+	if int(bmp.pixel_mode) != int(C.FT_PIXEL_MODE_LCD) {
+		data = make([]byte, outLen)
+	}
 
 	pitchPositive := bmp.pitch >= 0
 	absPitch := int(bmp.pitch)

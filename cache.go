@@ -1,5 +1,7 @@
 package glyph
 
+import "container/list"
+
 // FontMetricsEntry stores cached font metrics in Pango units.
 type FontMetricsEntry struct {
 	Ascent  int // Pango units.
@@ -8,50 +10,49 @@ type FontMetricsEntry struct {
 }
 
 // metricsCache is an LRU cache for font metrics keyed by
-// (face pointer XOR size) tuple.
+// (face pointer XOR size) tuple. Not safe for concurrent use.
 type metricsCache struct {
-	entries     map[uint64]FontMetricsEntry
-	accessOrder []uint64 // Most recent at end.
-	capacity    int
+	entries  map[uint64]*list.Element
+	order    *list.List // Front = oldest, Back = newest.
+	capacity int
+}
+
+type metricsCacheEntry struct {
+	key   uint64
+	value FontMetricsEntry
 }
 
 func newMetricsCache(capacity int) metricsCache {
 	return metricsCache{
-		entries:     make(map[uint64]FontMetricsEntry, capacity),
-		accessOrder: make([]uint64, 0, capacity),
-		capacity:    capacity,
+		entries:  make(map[uint64]*list.Element, capacity),
+		order:    list.New(),
+		capacity: capacity,
 	}
 }
 
 func (c *metricsCache) get(key uint64) (FontMetricsEntry, bool) {
-	entry, ok := c.entries[key]
+	elem, ok := c.entries[key]
 	if !ok {
 		return FontMetricsEntry{}, false
 	}
-	// Move to end (most recent).
-	c.moveToEnd(key)
-	return entry, true
+	c.order.MoveToBack(elem)
+	return elem.Value.(metricsCacheEntry).value, true
 }
 
 func (c *metricsCache) put(key uint64, entry FontMetricsEntry) {
-	if _, exists := c.entries[key]; !exists && len(c.entries) >= c.capacity {
-		// Evict oldest (first in accessOrder).
-		if len(c.accessOrder) > 0 {
-			evictKey := c.accessOrder[0]
+	if elem, exists := c.entries[key]; exists {
+		elem.Value = metricsCacheEntry{key: key, value: entry}
+		c.order.MoveToBack(elem)
+		return
+	}
+	if len(c.entries) >= c.capacity {
+		front := c.order.Front()
+		if front != nil {
+			evictKey := front.Value.(metricsCacheEntry).key
 			delete(c.entries, evictKey)
-			c.accessOrder = c.accessOrder[1:]
+			c.order.Remove(front)
 		}
 	}
-	c.entries[key] = entry
-	c.moveToEnd(key)
-}
-
-func (c *metricsCache) moveToEnd(key uint64) {
-	for i, k := range c.accessOrder {
-		if k == key {
-			c.accessOrder = append(c.accessOrder[:i], c.accessOrder[i+1:]...)
-			break
-		}
-	}
-	c.accessOrder = append(c.accessOrder, key)
+	elem := c.order.PushBack(metricsCacheEntry{key: key, value: entry})
+	c.entries[key] = elem
 }

@@ -22,6 +22,11 @@ type Layout struct {
 	Height           float32     // Logical height.
 	VisualWidth      float32     // Ink width.
 	VisualHeight     float32     // Ink height.
+
+	// Pre-sorted cursor/word boundary caches, built once.
+	cursorPositions []int // Sorted valid cursor byte indices.
+	wordStarts      []int // Sorted word-start byte indices.
+	wordEnds        []int // Sorted word-end byte indices.
 }
 
 // CursorPosition represents the geometry for rendering a text cursor.

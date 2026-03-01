@@ -14,11 +14,13 @@ import (
 
 // Renderer rasterizes glyphs, manages the glyph cache and atlas,
 // and emits draw calls through the DrawBackend interface.
+// Not safe for concurrent use.
 type Renderer struct {
 	backend         DrawBackend
 	atlas           *GlyphAtlas
 	cache           map[uint64]CachedGlyph
 	cacheAges       map[uint64]uint64
+	pageKeys        map[int][]uint64 // page → cache keys (reverse index)
 	maxCacheEntries int
 	scaleFactor     float32
 	scaleInv        float32
@@ -58,6 +60,7 @@ func NewRendererWithConfig(backend DrawBackend, scaleFactor float32,
 		atlas:           atlas,
 		cache:           make(map[uint64]CachedGlyph, 1024),
 		cacheAges:       make(map[uint64]uint64, 1024),
+		pageKeys:        make(map[int][]uint64),
 		maxCacheEntries: maxEntries,
 		scaleFactor:     safeScale,
 		scaleInv:        1.0 / safeScale,
@@ -73,6 +76,7 @@ func (r *Renderer) Free() {
 	r.atlas.Free()
 	r.cache = nil
 	r.cacheAges = nil
+	r.pageKeys = nil
 }
 
 // Commit uploads dirty atlas pages to the GPU. Call once per frame.
@@ -199,13 +203,17 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int,
 	fontID := uint64(uintptr(item.FTFace))
 	targetH := int(float32(item.Ascent) * r.scaleFactor)
 
-	indexWithBin := (uint64(g.Index) << 2) | uint64(bin)
-	strokeQ := uint64(strokeRadius) & 0xFFFF
-	sizeHash := uint64(targetH) * 0x9E3779B97F4A7C15
-	key := fontID ^ (indexWithBin << 32) ^ (strokeQ << 48) ^ sizeHash
+	key := fnvOffsetBasis
+	key = fnvHashU64(key, fontID)
+	key = fnvHashU64(key, (uint64(g.Index)<<2)|uint64(bin))
+	key = fnvHashU64(key, uint64(strokeRadius)&0xFFFF)
+	key = fnvHashU64(key, uint64(targetH))
 
 	if cached, ok := r.cache[key]; ok {
 		r.cacheAges[key] = r.atlas.FrameCounter
+		if cached.Page < 0 {
+			return CachedGlyph{} // Negative cache hit.
+		}
 		return cached
 	}
 
@@ -225,17 +233,21 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int,
 		result, err = LoadGlyph(r.atlas, cfg, r.scaleFactor)
 	}
 	if err != nil {
+		// Negative cache: prevent repeated C library calls for
+		// the same failing glyph.
+		failed := CachedGlyph{Page: -1}
+		r.cache[key] = failed
+		r.cacheAges[key] = r.atlas.FrameCounter
 		return CachedGlyph{}
 	}
 
 	// Invalidate cache entries on reset page.
 	if result.ResetOccurred {
-		for k, c := range r.cache {
-			if c.Page == result.ResetPage {
-				delete(r.cache, k)
-				delete(r.cacheAges, k)
-			}
+		for _, k := range r.pageKeys[result.ResetPage] {
+			delete(r.cache, k)
+			delete(r.cacheAges, k)
 		}
+		delete(r.pageKeys, result.ResetPage)
 	}
 
 	// Evict oldest if at capacity.
@@ -245,6 +257,7 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int,
 
 	r.cache[key] = result.Cached
 	r.cacheAges[key] = r.atlas.FrameCounter
+	r.pageKeys[result.Cached.Page] = append(r.pageKeys[result.Cached.Page], key)
 	return result.Cached
 }
 
@@ -257,9 +270,24 @@ func (r *Renderer) evictOldestGlyph() {
 			oldestKey = k
 		}
 	}
-	if oldestAge != math.MaxUint64 {
-		delete(r.cache, oldestKey)
-		delete(r.cacheAges, oldestKey)
+	if oldestAge == math.MaxUint64 {
+		return
+	}
+	if cg, ok := r.cache[oldestKey]; ok {
+		r.removePageKey(cg.Page, oldestKey)
+	}
+	delete(r.cache, oldestKey)
+	delete(r.cacheAges, oldestKey)
+}
+
+func (r *Renderer) removePageKey(page int, key uint64) {
+	keys := r.pageKeys[page]
+	for i, k := range keys {
+		if k == key {
+			keys[i] = keys[len(keys)-1]
+			r.pageKeys[page] = keys[:len(keys)-1]
+			return
+		}
 	}
 }
 

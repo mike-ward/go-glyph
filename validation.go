@@ -3,6 +3,7 @@ package glyph
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 )
@@ -30,6 +31,9 @@ func ValidateTextInput(text string, maxLen int, location string) error {
 	if !utf8.ValidString(text) {
 		return fmt.Errorf("invalid UTF-8 encoding at %s", location)
 	}
+	if strings.ContainsRune(text, '\x00') {
+		return fmt.Errorf("null byte in text at %s", location)
+	}
 	return nil
 }
 
@@ -41,7 +45,8 @@ func ValidateFontPath(path string, location string) error {
 	if strings.Contains(path, "..") {
 		return fmt.Errorf("path traversal (..) not allowed in font path at %s", location)
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	cleaned := filepath.Clean(path)
+	if _, err := os.Stat(cleaned); os.IsNotExist(err) {
 		return fmt.Errorf("font file does not exist: %q at %s", path, location)
 	}
 	return nil

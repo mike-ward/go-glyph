@@ -98,10 +98,8 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				gx := cx + float32(g.XOffset)
 				gy := cy - float32(g.YOffset)
-				r.emitGlyphQuad(cg, gx, gy, x, y, transform, isIdentity,
-					item.StrokeColor, false, nil, 0, 0, 0, 0,
-					float32(item.Ascent), float32(item.Descent),
-					item.UseOriginalColor, float32(g.XAdvance))
+				r.emitGlyphQuad(cg, gx, gy, x, y,
+					transform, isIdentity, item.StrokeColor)
 			}
 
 			cx += float32(g.XAdvance)
@@ -227,12 +225,9 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 	}
 }
 
-// emitGlyphQuad draws a single glyph (used by stroke pass and placed rendering).
+// emitGlyphQuad draws a single glyph quad for the stroke pass.
 func (r *Renderer) emitGlyphQuad(cg CachedGlyph, gx, gy, ox, oy float32,
-	transform AffineTransform, isIdentity bool,
-	color Color, useGradient bool, gradient *GradientConfig,
-	gradW, gradH, gradXOff, gradYOff float32,
-	ascent, descent float32, useOriginalColor bool, xAdvance float32) {
+	transform AffineTransform, isIdentity bool, color Color) {
 
 	scaleInv := r.scaleInv
 	drawX := gx + float32(cg.Left)*scaleInv

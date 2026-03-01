@@ -318,7 +318,7 @@ func buildLayoutFromPango(pl PangoLayoutW, text string,
 
 	logAttrResult := extractLogAttrs(pl, text)
 
-	return Layout{
+	result := Layout{
 		Text:            text,
 		Items:           items,
 		Glyphs:          allGlyphs,
@@ -332,4 +332,6 @@ func buildLayoutFromPango(pl PangoLayoutW, text string,
 		VisualWidth:     vWidth,
 		VisualHeight:    vHeight,
 	}
+	result.buildPositionCaches()
+	return result
 }
