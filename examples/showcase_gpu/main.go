@@ -48,12 +48,15 @@ type section struct {
 }
 
 type app struct {
-	window  *sdl.Window
-	backend *gpu.Backend
-	ts      *glyph.TextSystem
-	sects   []section
-	scrollY float32
-	frame   int
+	window    *sdl.Window
+	backend   *gpu.Backend
+	ts        *glyph.TextSystem
+	sects     []section
+	scrollY   float32
+	frame     int
+	subpixelX float32
+	mouseX    int32
+	mouseY    int32
 }
 
 func main() {
@@ -112,6 +115,9 @@ func main() {
 			case *sdl.MouseWheelEvent:
 				a.scrollY -= float32(e.Y) * 40
 				a.clampScroll()
+			case *sdl.MouseMotionEvent:
+				a.mouseX = e.X
+				a.mouseY = e.Y
 			case *sdl.KeyboardEvent:
 				if e.Type == sdl.KEYDOWN {
 					a.handleKey(e.Keysym.Sym)
@@ -222,22 +228,28 @@ func (a *app) drawSections() {
 
 func (a *app) buildSections() {
 	a.sects = []section{
-		{"ℹ️ INTRO", 100, drawIntro},
-		{"ℹ️ TYPOGRAPHY", 200, drawTypography},
-		{"ℹ️ DECORATIONS", 110, drawDecorations},
-		{"ℹ️ TEXT STROKE", 150, drawStroke},
+		{"INTRO", 100, drawIntro},
+		{"TYPOGRAPHY", 200, drawTypography},
+		{"DECORATIONS", 110, drawDecorations},
+		{"TEXT STROKE", 150, drawStroke},
 		{"LAYOUT", 220, drawLayout},
 		{"RICH TEXT", 60, drawRichText},
 		{"PANGO MARKUP", 60, drawMarkup},
 		{"GRADIENTS", 160, drawGradients},
-		{"INTERNATIONALIZATION", 250, drawI18n},
-		{"OPENTYPE FEATURES", 210, drawOpenType},
+		{"INTERNATIONALIZATION", 260, drawI18n},
+		{"BIDIRECTIONAL TEXT", 120, drawBidi},
+		{"OPENTYPE FEATURES", 220, drawOpenType},
+		{"SUBSCRIPTS & SUPERSCRIPTS", 120, drawSubSup},
 		{"LETTER SPACING", 140, drawSpacing},
-		{"FONT SIZES", 220, drawSizes},
-		{"ROTATED TEXT", 180, drawRotated},
-		{"VERTICAL TEXT", 260, drawVertical},
-		{"TEXT ON PATH", 250, drawPathText},
-		{"SKEWED TEXT", 140, drawSkewed},
+		{"FONT SIZES", 250, drawSizes},
+		{"ROTATED TEXT", 200, drawRotated},
+		{"VERTICAL TEXT", 200, drawVertical},
+		{"TEXT ON PATH", 290, drawPathText},
+		{"SKEWED TEXT", 160, drawSkewed},
+		{"SUBPIXEL RENDERING", 120, drawSubpixel},
+		{"HIT TESTING", 100, drawHitTest},
+		{"DIRECT TEXT RENDERING", 160, drawDirectText},
+		{"TRANSFORMS", 180, drawTransforms},
 	}
 }
 
@@ -748,6 +760,255 @@ func drawSkewed(a *app, x, y, w float32) {
 		}
 		a.ts.Renderer().DrawLayoutTransformedWithGradient(
 			l3, x, y+100, glyph.AffineSkew(-0.2, 0), grad)
+	}
+}
+
+// --- Section: Bidirectional Text ---
+
+func drawBidi(a *app, x, y, w float32) {
+	_ = a.ts.DrawText(x, y,
+		"The word \"\u0633\u0644\u0627\u0645\" means peace in Arabic.",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 18", Color: textColor},
+		})
+	_ = a.ts.DrawText(x, y+35,
+		"Mixed scripts: Latin, Greek (\u0393\u03b5\u03b9\u03ac \u03c3\u03bf\u03c5), "+
+			"Cyrillic (\u041f\u0440\u0438\u0432\u0435\u0442)",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 18", Color: textColor},
+		})
+	_ = a.ts.DrawText(x, y+80,
+		"Pango handles bidi reordering automatically",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+		})
+}
+
+// --- Section: Subscripts & Superscripts ---
+
+func drawSubSup(a *app, x, y, w float32) {
+	subsFeature := &glyph.FontFeatures{
+		OpenTypeFeatures: []glyph.FontFeature{{Tag: "subs", Value: 1}},
+	}
+	supsFeature := &glyph.FontFeatures{
+		OpenTypeFeatures: []glyph.FontFeature{{Tag: "sups", Value: 1}},
+	}
+
+	normal := glyph.TextStyle{FontName: "Sans 24", Color: textColor}
+	sub := glyph.TextStyle{FontName: "Sans 24", Color: warm, Features: subsFeature}
+	sup := glyph.TextStyle{FontName: "Serif Italic 24", Color: accent, Features: supsFeature}
+	serif := glyph.TextStyle{FontName: "Serif Italic 24", Color: textColor}
+
+	// H₂O
+	h2o, err := a.ts.LayoutRichText(glyph.RichText{Runs: []glyph.StyleRun{
+		{Text: "Chemical: H", Style: normal},
+		{Text: "2", Style: sub},
+		{Text: "O", Style: normal},
+	}}, glyph.TextConfig{})
+	if err == nil {
+		a.ts.DrawLayout(h2o, x, y)
+	}
+
+	// E=mc²
+	emc2, err := a.ts.LayoutRichText(glyph.RichText{Runs: []glyph.StyleRun{
+		{Text: "Physics: E=mc", Style: serif},
+		{Text: "2", Style: sup},
+	}}, glyph.TextConfig{})
+	if err == nil {
+		a.ts.DrawLayout(emc2, x+280, y)
+	}
+
+	// x² + y² = z²
+	pyth, err := a.ts.LayoutRichText(glyph.RichText{Runs: []glyph.StyleRun{
+		{Text: "x", Style: serif},
+		{Text: "2", Style: sup},
+		{Text: " + y", Style: serif},
+		{Text: "2", Style: sup},
+		{Text: " = z", Style: serif},
+		{Text: "2", Style: sup},
+	}}, glyph.TextConfig{})
+	if err == nil {
+		a.ts.DrawLayout(pyth, x, y+40)
+	}
+
+	_ = a.ts.DrawText(x, y+80,
+		"Uses OpenType subs/sups features (font support required)",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+		})
+}
+
+// --- Section: Subpixel Rendering ---
+
+func drawSubpixel(a *app, x, y, w float32) {
+	a.subpixelX += 0.05
+	if a.subpixelX > 50 {
+		a.subpixelX = 0
+	}
+
+	_ = a.ts.DrawText(x+a.subpixelX, y,
+		"Smooth Subpixel Motion", glyph.TextConfig{
+			Style: glyph.TextStyle{
+				FontName: "Sans 18", Color: gc(140, 220, 140, 255),
+			},
+		})
+
+	snapped := float32(math.Round(float64(a.subpixelX)))
+	_ = a.ts.DrawText(x+snapped, y+35,
+		"Integer Snapped Motion", glyph.TextConfig{
+			Style: glyph.TextStyle{
+				FontName: "Sans 18", Color: gc(220, 100, 100, 255),
+			},
+		})
+
+	_ = a.ts.DrawText(x, y+75,
+		"Watch the green text glide vs red text jitter",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+		})
+}
+
+// --- Section: Hit Testing ---
+
+func drawHitTest(a *app, x, y, w float32) {
+	text := "Move the mouse over this text to see hit testing. " +
+		"The character under the cursor is highlighted and a " +
+		"cursor line is drawn at the nearest position."
+
+	wrapW := float32(500)
+	if w < 540 {
+		wrapW = w - 20
+	}
+
+	cfg := glyph.TextConfig{
+		Style: glyph.TextStyle{FontName: "Sans 16", Color: textColor},
+		Block: glyph.BlockStyle{Wrap: glyph.WrapWord, Width: wrapW},
+	}
+
+	layout, err := a.ts.LayoutTextCached(text, cfg)
+	if err != nil {
+		return
+	}
+
+	a.ts.DrawLayout(layout, x, y)
+
+	// Convert mouse to layout-local coordinates.
+	localX := float32(a.mouseX) - x
+	localY := float32(a.mouseY) - y
+
+	if localX < -20 || localX > wrapW+20 ||
+		localY < -20 || localY > layout.VisualHeight+20 {
+		return
+	}
+
+	idx := layout.GetClosestOffset(localX, localY)
+
+	// Highlight character rect.
+	if cr, ok := layout.GetCharRect(idx); ok {
+		a.backend.DrawFilledRect(glyph.Rect{
+			X: x + cr.X, Y: y + cr.Y,
+			Width: cr.Width, Height: cr.Height,
+		}, gc(255, 255, 100, 60))
+	}
+
+	// Draw cursor line.
+	if cp, ok := layout.GetCursorPos(idx); ok {
+		a.backend.DrawFilledRect(glyph.Rect{
+			X: x + cp.X, Y: y + cp.Y,
+			Width: 2, Height: cp.Height,
+		}, gc(255, 100, 100, 200))
+	}
+
+	_ = a.ts.DrawText(x, y+layout.VisualHeight+15,
+		fmt.Sprintf("Byte index: %d", idx),
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+		})
+}
+
+// --- Section: Direct Text Rendering ---
+
+func drawDirectText(a *app, x, y, w float32) {
+	code := glyph.RichText{Runs: []glyph.StyleRun{
+		{Text: "ts", Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: textColor,
+		}},
+		{Text: ".", Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: dimColor,
+		}},
+		{Text: "DrawText", Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: accent,
+		}},
+		{Text: "(x, y, ", Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: dimColor,
+		}},
+		{Text: `"Hello Go!"`, Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: codeGreen,
+		}},
+		{Text: ", cfg)", Style: glyph.TextStyle{
+			FontName: "Monospace 14", Color: dimColor,
+		}},
+	}}
+
+	a.backend.DrawFilledRect(glyph.Rect{
+		X: x, Y: y, Width: 420, Height: 26,
+	}, gc(30, 30, 40, 255))
+
+	cl, err := a.ts.LayoutRichText(code, glyph.TextConfig{})
+	if err == nil {
+		a.ts.DrawLayout(cl, x+8, y+4)
+	}
+
+	_ = a.ts.DrawText(x, y+40, "Result:", glyph.TextConfig{
+		Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+	})
+
+	_ = a.ts.DrawText(x, y+60, "Hello Go!", glyph.TextConfig{
+		Style: glyph.TextStyle{FontName: "Sans Bold 32", Color: warm},
+	})
+
+	_ = a.ts.DrawText(x, y+110,
+		"DrawText is the simplest API \u2014 one call, no layout management",
+		glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 12", Color: dimColor},
+		})
+}
+
+// --- Section: Transforms ---
+
+func drawTransforms(a *app, x, y, w float32) {
+	type sample struct {
+		label     string
+		text      string
+		color     glyph.Color
+		transform glyph.AffineTransform
+		dx, dy    float32
+	}
+
+	rot15 := glyph.AffineRotation(15 * math.Pi / 180)
+	rot30 := glyph.AffineRotation(30 * math.Pi / 180)
+	scale := glyph.AffineTransform{XX: 1.4, YY: 0.7}
+	combined := glyph.AffineRotation(20 * math.Pi / 180).
+		Multiply(glyph.AffineSkew(-0.25, 0))
+
+	samples := []sample{
+		{"Rotate 15\u00b0", "Rotated", warm, rot15, 0, 0},
+		{"Rotate 30\u00b0", "Rotated", cool, rot30, 220, 0},
+		{"Skew", "Skewed", accent, glyph.AffineSkew(-0.3, 0), 440, 0},
+		{"Scale 1.4\u00d70.7", "Scaled", highlight, scale, 0, 90},
+		{"Rotate+Skew", "Combined", gc(180, 140, 255, 255), combined, 220, 90},
+	}
+
+	for _, s := range samples {
+		_ = a.ts.DrawText(x+s.dx, y+s.dy, s.label, glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans 10", Color: dimColor},
+		})
+		l, err := a.ts.LayoutText(s.text, glyph.TextConfig{
+			Style: glyph.TextStyle{FontName: "Sans Bold 24", Color: s.color},
+		})
+		if err == nil {
+			a.ts.DrawLayoutTransformed(l, x+s.dx, y+s.dy+18, s.transform)
+		}
 	}
 }
 
