@@ -66,8 +66,8 @@ func TestValidatePathTraversal(t *testing.T) {
 
 func TestValidatePathNonexistent(t *testing.T) {
 	err := ValidateFontPath("/nonexistent/path/to/font.ttf", "test")
-	if err == nil || !strings.Contains(err.Error(), "does not exist") {
-		t.Fatalf("expected not-exist error, got: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "not accessible") {
+		t.Fatalf("expected not-accessible error, got: %v", err)
 	}
 }
 

@@ -138,7 +138,7 @@ func processRun(items *[]Item, allGlyphs *[]Glyph, verticalPenY float64,
 	startGlyphIdx := len(*allGlyphs)
 	var width float64
 
-	for i := 0; i < numGlyphs; i++ {
+	for i := range numGlyphs {
 		info := (*[1 << 20]C.PangoGlyphInfo)(unsafe.Pointer(glyphString.glyphs))[i]
 		xOff := float64(info.geometry.x_offset) * pixelScale
 		yOff := float64(info.geometry.y_offset) * pixelScale

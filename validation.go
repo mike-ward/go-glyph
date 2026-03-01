@@ -42,12 +42,14 @@ func ValidateFontPath(path string, location string) error {
 	if len(path) == 0 {
 		return fmt.Errorf("empty font path not allowed at %s", location)
 	}
-	if strings.Contains(path, "..") {
-		return fmt.Errorf("path traversal (..) not allowed in font path at %s", location)
+	for _, part := range strings.Split(filepath.ToSlash(path), "/") {
+		if part == ".." {
+			return fmt.Errorf("path traversal (..) not allowed in font path at %s", location)
+		}
 	}
 	cleaned := filepath.Clean(path)
-	if _, err := os.Stat(cleaned); os.IsNotExist(err) {
-		return fmt.Errorf("font file does not exist: %q at %s", path, location)
+	if _, err := os.Stat(cleaned); err != nil {
+		return fmt.Errorf("font file not accessible: %q at %s: %w", path, location, err)
 	}
 	return nil
 }

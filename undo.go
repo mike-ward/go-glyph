@@ -196,6 +196,9 @@ func (um *UndoManager) Redo(text string) *UndoResult {
 	case OpInsert:
 		newText = text[:op.RangeStart] + op.InsertedText + text[op.RangeStart:]
 	case OpDelete:
+		if op.RangeEnd > len(text) || op.RangeStart > op.RangeEnd {
+			return nil
+		}
 		newText = text[:op.RangeStart] + text[op.RangeEnd:]
 	case OpReplace:
 		oldEnd := op.RangeStart + len(op.DeletedText)

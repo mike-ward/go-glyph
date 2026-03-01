@@ -197,8 +197,8 @@ func getPixelRGBAPremul(src []byte, w, h, x, y int) (r, g, b, a float32) {
 	if w <= 0 || h <= 0 {
 		return
 	}
-	cx := clampInt(x, 0, w-1)
-	cy := clampInt(y, 0, h-1)
+	cx := max(0, min(x, w-1))
+	cy := max(0, min(y, h-1))
 	idx := (cy*w + cx) * 4
 	if idx < 0 || idx+3 >= len(src) {
 		return
@@ -259,7 +259,7 @@ func ScaleBitmapBicubic(src []byte, srcW, srcH, dstW, dstH int) []byte {
 			finalB := cubicHermite(colB[0], colB[1], colB[2], colB[3], yDiff)
 			finalA := cubicHermite(colA[0], colA[1], colA[2], colA[3], yDiff)
 
-			finalA = clampF32(finalA, 0, 255)
+			finalA = max(0, min(finalA, 255))
 
 			if finalA > 0 {
 				f := 255.0 / finalA
@@ -268,31 +268,11 @@ func ScaleBitmapBicubic(src []byte, srcW, srcH, dstW, dstH int) []byte {
 				finalB *= f
 			}
 
-			dst[dstIdx+0] = byte(clampF32(finalR, 0, 255))
-			dst[dstIdx+1] = byte(clampF32(finalG, 0, 255))
-			dst[dstIdx+2] = byte(clampF32(finalB, 0, 255))
+			dst[dstIdx+0] = byte(max(0, min(finalR, 255)))
+			dst[dstIdx+1] = byte(max(0, min(finalG, 255)))
+			dst[dstIdx+2] = byte(max(0, min(finalB, 255)))
 			dst[dstIdx+3] = byte(finalA)
 		}
 	}
 	return dst
-}
-
-func clampInt(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
-}
-
-func clampF32(v, lo, hi float32) float32 {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
 }

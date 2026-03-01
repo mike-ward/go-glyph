@@ -134,30 +134,6 @@ func TestCubicHermite(t *testing.T) {
 	}
 }
 
-func TestClampInt(t *testing.T) {
-	if clampInt(-5, 0, 10) != 0 {
-		t.Error("clampInt(-5,0,10)")
-	}
-	if clampInt(15, 0, 10) != 10 {
-		t.Error("clampInt(15,0,10)")
-	}
-	if clampInt(5, 0, 10) != 5 {
-		t.Error("clampInt(5,0,10)")
-	}
-}
-
-func TestClampF32(t *testing.T) {
-	if clampF32(-1.5, 0, 1) != 0 {
-		t.Error("clampF32 low")
-	}
-	if clampF32(2.5, 0, 1) != 1 {
-		t.Error("clampF32 high")
-	}
-	if clampF32(0.5, 0, 1) != 0.5 {
-		t.Error("clampF32 mid")
-	}
-}
-
 func TestGetPixelRGBAPremul(t *testing.T) {
 	// 1x1 pixel: R=200, G=100, B=50, A=128
 	src := []byte{200, 100, 50, 128}

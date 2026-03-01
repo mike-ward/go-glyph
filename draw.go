@@ -1,6 +1,5 @@
 package glyph
 
-import "math"
 
 // drawLayoutImpl is the shared implementation for all DrawLayout* variants.
 func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
@@ -338,6 +337,6 @@ func gradientColorForGlyph(gradient *GradientConfig, cx, cy, ascent float32,
 			t = (cy - ascent - gradYOff) / gradH
 		}
 	}
-	t = float32(math.Max(0, math.Min(1, float64(t))))
+	t = max(0, min(1, t))
 	return GradientColorAt(gradient.Stops, t)
 }
