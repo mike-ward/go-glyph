@@ -222,10 +222,10 @@ func (a *app) drawSections() {
 
 func (a *app) buildSections() {
 	a.sects = []section{
-		{"INTRO", 100, drawIntro},
-		{"TYPOGRAPHY", 200, drawTypography},
-		{"DECORATIONS", 110, drawDecorations},
-		{"TEXT STROKE", 150, drawStroke},
+		{"ℹ️ INTRO", 100, drawIntro},
+		{"ℹ️ TYPOGRAPHY", 200, drawTypography},
+		{"ℹ️ DECORATIONS", 110, drawDecorations},
+		{"ℹ️ TEXT STROKE", 150, drawStroke},
 		{"LAYOUT", 220, drawLayout},
 		{"RICH TEXT", 60, drawRichText},
 		{"PANGO MARKUP", 60, drawMarkup},
@@ -677,13 +677,17 @@ func drawPathText(a *app, x, y, w float32) {
 
 	cx := x + minf(w*0.35, 300)
 	cy := y + 120
-	radius := float32(100)
-	startAngle := float32(-math.Pi * 0.8)
+	radius := float32(150)
 
 	var totalAdv float32
 	for _, p := range positions {
 		totalAdv += p.Advance
 	}
+
+	// Arc-length parameterization: arc span from text width,
+	// not a fixed constant. Matches VGlyph algorithm.
+	arcSpan := totalAdv / radius
+	startAngle := -arcSpan / 2
 
 	placements := make([]glyph.GlyphPlacement, len(layout.Glyphs))
 	// Default: offscreen.
@@ -693,11 +697,17 @@ func drawPathText(a *app, x, y, w float32) {
 
 	cumAdv := float32(0)
 	for _, p := range positions {
-		t := (cumAdv + p.Advance*0.5) / totalAdv
-		theta := startAngle + t*math.Pi*1.6
-		gx := cx + radius*float32(math.Cos(float64(theta)))
-		gy := cy + radius*float32(math.Sin(float64(theta)))
+		mid := cumAdv + p.Advance*0.5
+		theta := startAngle + mid/radius
+
 		tangent := theta + math.Pi/2
+
+		arcX := cx + radius*float32(math.Cos(float64(theta)))
+		arcY := cy + radius*float32(math.Sin(float64(theta)))
+
+		halfAdv := p.Advance * 0.5
+		gx := arcX - halfAdv*float32(math.Cos(float64(tangent)))
+		gy := arcY - halfAdv*float32(math.Sin(float64(tangent)))
 
 		placements[p.Index] = glyph.GlyphPlacement{
 			X: gx, Y: gy, Angle: tangent,
