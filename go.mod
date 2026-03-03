@@ -1,6 +1,6 @@
 module github.com/mike-ward/go-glyph
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/princjef/gomarkdoc v1.1.0
