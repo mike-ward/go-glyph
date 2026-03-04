@@ -370,6 +370,11 @@ func (l *Layout) MoveCursorUp(byteIndex int, preferredX float32) int {
 	for i, line := range l.Lines {
 		lineEnd := line.StartIndex + line.Length
 		if byteIndex >= line.StartIndex && byteIndex <= lineEnd {
+			// At boundary: prefer line that starts here.
+			if byteIndex == lineEnd && i+1 < len(l.Lines) &&
+				l.Lines[i+1].StartIndex == byteIndex {
+				continue
+			}
 			currentLineIdx = i
 			if targetX < 0 {
 				if pos, ok := l.GetCursorPos(byteIndex); ok {
@@ -397,6 +402,11 @@ func (l *Layout) MoveCursorDown(byteIndex int, preferredX float32) int {
 	for i, line := range l.Lines {
 		lineEnd := line.StartIndex + line.Length
 		if byteIndex >= line.StartIndex && byteIndex <= lineEnd {
+			// At boundary: prefer line that starts here.
+			if byteIndex == lineEnd && i+1 < len(l.Lines) &&
+				l.Lines[i+1].StartIndex == byteIndex {
+				continue
+			}
 			currentLineIdx = i
 			if targetX < 0 {
 				if pos, ok := l.GetCursorPos(byteIndex); ok {
