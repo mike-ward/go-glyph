@@ -209,9 +209,13 @@ func (l *Layout) GetCursorPos(byteIndex int) (CursorPosition, bool) {
 		}
 	}
 
-	// Try exact char rect.
-	if r, ok := l.GetCharRect(byteIndex); ok {
-		return CursorPosition{X: r.X, Y: r.Y, Height: r.Height}, true
+	// Try exact char rect. Skip '\n' — its glyph rect is at the
+	// start of the next line, but the cursor belongs at the end
+	// of the current line (handled by the line-based fallback).
+	if byteIndex >= len(l.Text) || l.Text[byteIndex] != '\n' {
+		if r, ok := l.GetCharRect(byteIndex); ok {
+			return CursorPosition{X: r.X, Y: r.Y, Height: r.Height}, true
+		}
 	}
 
 	// Fallback: find containing line.
@@ -338,10 +342,16 @@ func (l *Layout) MoveCursorWordRight(byteIndex int) int {
 }
 
 // MoveCursorLineStart returns the start of the current line.
+// At a soft-wrap boundary the later line is preferred.
 func (l *Layout) MoveCursorLineStart(byteIndex int) int {
-	for _, line := range l.Lines {
+	for i, line := range l.Lines {
 		lineEnd := line.StartIndex + line.Length
 		if byteIndex >= line.StartIndex && byteIndex <= lineEnd {
+			// At boundary: prefer next line if it starts here.
+			if byteIndex == lineEnd && i+1 < len(l.Lines) &&
+				l.Lines[i+1].StartIndex == lineEnd {
+				continue
+			}
 			return line.StartIndex
 		}
 	}
@@ -349,10 +359,16 @@ func (l *Layout) MoveCursorLineStart(byteIndex int) int {
 }
 
 // MoveCursorLineEnd returns the end of the current line.
+// At a soft-wrap boundary the later line is preferred.
 func (l *Layout) MoveCursorLineEnd(byteIndex int) int {
-	for _, line := range l.Lines {
+	for i, line := range l.Lines {
 		lineEnd := line.StartIndex + line.Length
 		if byteIndex >= line.StartIndex && byteIndex <= lineEnd {
+			// At boundary: prefer next line if it starts here.
+			if byteIndex == lineEnd && i+1 < len(l.Lines) &&
+				l.Lines[i+1].StartIndex == lineEnd {
+				continue
+			}
 			return lineEnd
 		}
 	}

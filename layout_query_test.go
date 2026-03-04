@@ -220,6 +220,27 @@ func TestMoveCursorLineEnd(t *testing.T) {
 	}
 }
 
+func TestMoveCursorLineEndSoftWrap(t *testing.T) {
+	// Simulate soft-wrap: line 0 ends where line 1 starts.
+	l := testLayout()
+	l.Lines[0].Length = 6 // lineEnd = 6 = line 1 StartIndex
+	l.Lines[1].StartIndex = 6
+	// Cursor at boundary (col 0 of line 1) → end of line 1.
+	if got := l.MoveCursorLineEnd(6); got != 11 {
+		t.Errorf("MoveCursorLineEnd(6) = %d, want 11", got)
+	}
+}
+
+func TestMoveCursorLineStartSoftWrap(t *testing.T) {
+	l := testLayout()
+	l.Lines[0].Length = 6
+	l.Lines[1].StartIndex = 6
+	// Cursor at boundary (col 0 of line 1) → start of line 1.
+	if got := l.MoveCursorLineStart(6); got != 6 {
+		t.Errorf("MoveCursorLineStart(6) = %d, want 6", got)
+	}
+}
+
 func TestMoveCursorUp(t *testing.T) {
 	l := testLayout()
 	// From index 8 (line 2, x=25), move up should land on line 1
