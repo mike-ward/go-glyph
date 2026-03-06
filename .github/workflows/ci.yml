@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            backend/ebitengine/go.sum
+            backend/gpu/go.sum
+            backend/sdl2/go.sum
+            examples/demo/go.sum
+            examples/demo_gpu/go.sum
+            examples/demo_sdl2/go.sum
+            examples/showcase_gpu/go.sum
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libglib2.0-dev \
+            libgl1-mesa-dev \
+            libpango1.0-dev \
+            libsdl2-dev \
+            pkg-config
+
+      - name: Test all modules
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          set -euo pipefail
+
+          modules=(
+            "."
+            "backend/ebitengine"
+            "backend/gpu"
+            "backend/sdl2"
+            "examples/demo"
+            "examples/demo_gpu"
+            "examples/demo_sdl2"
+            "examples/showcase_gpu"
+          )
+
+          for module in "${modules[@]}"; do
+            echo "==> go test ./... ($module)"
+            (
+              cd "$module"
+              go test ./...
+            )
+          done
