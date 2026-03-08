@@ -41,6 +41,7 @@ func New(renderer *sdl.Renderer, dpiScale float32) *Backend {
 func (b *Backend) NewTexture(width, height int) glyph.TextureID {
 	b.nextID++
 	id := b.nextID
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "1")
 	tex, err := b.renderer.CreateTexture(
 		uint32(sdl.PIXELFORMAT_RGBA32),
 		sdl.TEXTUREACCESS_STREAMING,
