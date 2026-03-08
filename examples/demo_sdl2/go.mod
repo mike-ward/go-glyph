@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/mike-ward/go-glyph v1.0.0
-	github.com/mike-ward/go-glyph/backend/sdl2 v0.0.0
+	github.com/mike-ward/go-glyph/backend/sdl2 v1.0.0
 	github.com/veandco/go-sdl2 v0.4.40
 )
 
