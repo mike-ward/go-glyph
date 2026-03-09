@@ -43,7 +43,9 @@ type BlockStyle struct {
 	Width float32
 	// Indent determines first-line indentation. Negative = hanging indent.
 	Indent float32
-	Tabs   []int
+	// LineSpacing adds extra vertical space after each line except the last.
+	LineSpacing float32
+	Tabs        []int
 }
 
 // DefaultBlockStyle returns a BlockStyle with standard defaults.

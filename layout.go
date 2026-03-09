@@ -109,7 +109,9 @@ func setupPangoLayout(ctx *Context, text string, cfg TextConfig) (PangoLayoutW, 
 	// Width and wrapping.
 	if cfg.Block.Width > 0 {
 		pl.SetWidth(int(cfg.Block.Width * ctx.scaleFactor * float32(PangoScale)))
-		pl.SetWrap(cfg.Block.Wrap)
+		if cfg.Block.Wrap != WrapNone {
+			pl.SetWrap(cfg.Block.Wrap)
+		}
 	}
 	pl.SetAlignment(cfg.Block.Align)
 	if cfg.Block.Indent != 0 {
@@ -332,6 +334,69 @@ func buildLayoutFromPango(pl PangoLayoutW, text string,
 		VisualWidth:     vWidth,
 		VisualHeight:    vHeight,
 	}
+	applyLineSpacing(&result, cfg.Block.LineSpacing)
 	result.buildPositionCaches()
 	return result
+}
+
+func applyLineSpacing(layout *Layout, spacing float32) {
+	if layout == nil || spacing <= 0 || len(layout.Lines) < 2 {
+		return
+	}
+
+	lines := append([]Line(nil), layout.Lines...)
+	offsets := make([]float32, len(lines))
+	var extraHeight float32
+	for i := range layout.Lines {
+		offsets[i] = extraHeight
+		layout.Lines[i].Rect.Y += extraHeight
+		if i < len(layout.Lines)-1 {
+			layout.Lines[i].Rect.Height += spacing
+			extraHeight += spacing
+		}
+	}
+
+	for i := range layout.Items {
+		lineIdx := lineIndexForBaseline(lines, float32(layout.Items[i].Y))
+		if lineIdx < 0 {
+			continue
+		}
+		layout.Items[i].Y += float64(offsets[lineIdx])
+	}
+
+	for i := range layout.CharRects {
+		lineIdx := lineIndexForRect(lines, layout.CharRects[i].Rect)
+		if lineIdx < 0 {
+			continue
+		}
+		layout.CharRects[i].Rect.Y += offsets[lineIdx]
+	}
+
+	layout.Height += extraHeight
+	layout.VisualHeight += extraHeight
+}
+
+func lineIndexForBaseline(lines []Line, baselineY float32) int {
+	const eps = 0.001
+	for i := range lines {
+		top := lines[i].Rect.Y - eps
+		bottom := lines[i].Rect.Y + lines[i].Rect.Height + eps
+		if baselineY >= top && baselineY <= bottom {
+			return i
+		}
+	}
+	return -1
+}
+
+func lineIndexForRect(lines []Line, rect Rect) int {
+	centerY := rect.Y + rect.Height/2
+	const eps = 0.001
+	for i := range lines {
+		top := lines[i].Rect.Y - eps
+		bottom := lines[i].Rect.Y + lines[i].Rect.Height + eps
+		if centerY >= top && centerY <= bottom {
+			return i
+		}
+	}
+	return -1
 }

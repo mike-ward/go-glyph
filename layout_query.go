@@ -214,7 +214,18 @@ func (l *Layout) GetCursorPos(byteIndex int) (CursorPosition, bool) {
 	// of the current line (handled by the line-based fallback).
 	if byteIndex >= len(l.Text) || l.Text[byteIndex] != '\n' {
 		if r, ok := l.GetCharRect(byteIndex); ok {
-			return CursorPosition{X: r.X, Y: r.Y, Height: r.Height}, true
+			if line, ok := l.lineForByteIndex(byteIndex); ok {
+				return CursorPosition{
+					X:      r.X,
+					Y:      line.Rect.Y,
+					Height: line.Rect.Height,
+				}, true
+			}
+			return CursorPosition{
+				X:      r.X,
+				Y:      r.Y,
+				Height: r.Height,
+			}, true
 		}
 	}
 
@@ -249,6 +260,16 @@ func (l *Layout) GetCursorPos(byteIndex int) (CursorPosition, bool) {
 		}, true
 	}
 	return CursorPosition{}, false
+}
+
+func (l *Layout) lineForByteIndex(byteIndex int) (Line, bool) {
+	for _, line := range l.Lines {
+		lineEnd := line.StartIndex + line.Length
+		if byteIndex >= line.StartIndex && byteIndex <= lineEnd {
+			return line, true
+		}
+	}
+	return Line{}, false
 }
 
 // GetValidCursorPositions returns sorted byte indices that are

@@ -161,6 +161,35 @@ func TestGetCursorPosLineEnd(t *testing.T) {
 	}
 }
 
+func TestGetSelectionRectsIncludeLineSpacing(t *testing.T) {
+	l := testLayout()
+	applyLineSpacing(&l, 8)
+
+	rects := l.GetSelectionRects(2, 8)
+	if len(rects) != 2 {
+		t.Fatalf("GetSelectionRects(2, 8) returned %d rects, want 2", len(rects))
+	}
+	if rects[0].Height != 28 {
+		t.Fatalf("rects[0].Height = %f, want 28", rects[0].Height)
+	}
+	if rects[1].Y != 28 {
+		t.Fatalf("rects[1].Y = %f, want 28", rects[1].Y)
+	}
+}
+
+func TestGetCursorPosUsesLineHeightAfterLineSpacing(t *testing.T) {
+	l := testLayout()
+	applyLineSpacing(&l, 6)
+
+	pos, ok := l.GetCursorPos(1)
+	if !ok {
+		t.Fatal("GetCursorPos(1) not found")
+	}
+	if pos.Height != 26 {
+		t.Fatalf("GetCursorPos(1).Height = %f, want 26", pos.Height)
+	}
+}
+
 func TestGetValidCursorPositions(t *testing.T) {
 	l := testLayout()
 	positions := l.GetValidCursorPositions()

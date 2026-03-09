@@ -13,6 +13,7 @@ const (
 type WrapMode int
 
 const (
+	WrapNone     WrapMode = -1   // Do not wrap, even when a width is set.
 	WrapWord     WrapMode = iota // Wrap at word boundaries.
 	WrapChar                     // Wrap at character boundaries.
 	WrapWordChar                 // Wrap at word, fallback to char if word too long.

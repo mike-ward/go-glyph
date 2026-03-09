@@ -199,6 +199,22 @@ func (ts *TextSystem) DrawLayoutWithGradient(l Layout, x, y float32,
 	ts.renderer.DrawLayoutWithGradient(l, x, y, gradient)
 }
 
+// DrawLayoutTransformedWithGradient renders with both an affine transform
+// and gradient colors.
+func (ts *TextSystem) DrawLayoutTransformedWithGradient(
+	l Layout,
+	x, y float32,
+	transform AffineTransform,
+	gradient *GradientConfig,
+) {
+	if ts.renderer == nil {
+		return
+	}
+	ts.renderer.DrawLayoutTransformedWithGradient(
+		l, x, y, transform, gradient,
+	)
+}
+
 // DrawLayoutPlaced renders glyphs at individual placements.
 func (ts *TextSystem) DrawLayoutPlaced(l Layout, placements []GlyphPlacement) {
 	if ts.renderer == nil {
@@ -265,7 +281,7 @@ func (ts *TextSystem) getCacheKey(text string, cfg TextConfig) uint64 {
 		packed |= 1 << 5
 	}
 	packed |= uint64(cfg.Block.Align) << 6
-	packed |= uint64(cfg.Block.Wrap) << 10
+	packed |= uint64(int64(cfg.Block.Wrap)+1) << 10
 	if cfg.UseMarkup {
 		packed |= 1 << 14
 	}
@@ -298,6 +314,7 @@ func (ts *TextSystem) getCacheKey(text string, cfg TextConfig) uint64 {
 	// BlockStyle.
 	h = fnvHashF32(h, cfg.Block.Width)
 	h = fnvHashF32(h, cfg.Block.Indent)
+	h = fnvHashF32(h, cfg.Block.LineSpacing)
 	for _, t := range cfg.Block.Tabs {
 		h = fnvHashU64(h, uint64(t))
 	}
@@ -344,4 +361,3 @@ func fnvHashColor(h uint64, c Color) uint64 {
 	u := uint32(c.R) | uint32(c.G)<<8 | uint32(c.B)<<16 | uint32(c.A)<<24
 	return fnvHashU64(h, uint64(u))
 }
-

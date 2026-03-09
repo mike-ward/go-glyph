@@ -269,6 +269,39 @@ func TestTextSystemDrawLayoutWithGradient(t *testing.T) {
 	}
 }
 
+func TestTextSystemDrawLayoutTransformedWithGradient(t *testing.T) {
+	backend := newRecordingBackend()
+	ts, err := NewTextSystem(backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Free()
+
+	cfg := TextConfig{
+		Style: TextStyle{FontName: "Sans 16"},
+	}
+	layout, err := ts.LayoutText("Gradient transform", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gradient := &GradientConfig{
+		Direction: GradientHorizontal,
+		Stops: []GradientStop{
+			{Position: 0, Color: Color{255, 0, 0, 255}},
+			{Position: 1, Color: Color{0, 0, 255, 255}},
+		},
+	}
+	ts.DrawLayoutTransformedWithGradient(
+		layout, 20, 30, AffineRotation(0.25), gradient,
+	)
+	ts.Commit()
+
+	if len(backend.drawCalls) == 0 {
+		t.Error("no draw calls for transformed gradient layout")
+	}
+}
+
 func TestTextSystemDrawLayoutPlaced(t *testing.T) {
 	backend := newRecordingBackend()
 	ts, err := NewTextSystem(backend)
@@ -390,6 +423,33 @@ func TestCacheKeyGradientExcluded(t *testing.T) {
 	k2 := ts.getCacheKey("Test", cfg2)
 	if k1 != k2 {
 		t.Error("gradient should not affect cache key")
+	}
+}
+
+func TestCacheKeyDifferentLineSpacing(t *testing.T) {
+	backend := newRecordingBackend()
+	ts, err := NewTextSystem(backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Free()
+
+	cfg1 := TextConfig{
+		Style: TextStyle{FontName: "Sans 14"},
+		Block: BlockStyle{Width: 120, Wrap: WrapWord},
+	}
+	cfg2 := TextConfig{
+		Style: TextStyle{FontName: "Sans 14"},
+		Block: BlockStyle{
+			Width:       120,
+			Wrap:        WrapWord,
+			LineSpacing: 6,
+		},
+	}
+	k1 := ts.getCacheKey("Test", cfg1)
+	k2 := ts.getCacheKey("Test", cfg2)
+	if k1 == k2 {
+		t.Error("different line spacing should produce different keys")
 	}
 }
 

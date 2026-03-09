@@ -62,6 +62,44 @@ func TestLayoutWrapping(t *testing.T) {
 	}
 }
 
+func TestLayoutLineSpacingIncreasesHeightAndOffsetsLines(t *testing.T) {
+	ctx := newTestContext(t)
+	defer ctx.Free()
+
+	baseCfg := TextConfig{
+		Style: TextStyle{FontName: "Sans 20"},
+		Block: BlockStyle{Width: 80, Wrap: WrapWord},
+	}
+	spacedCfg := TextConfig{
+		Style: TextStyle{FontName: "Sans 20"},
+		Block: BlockStyle{
+			Width:       80,
+			Wrap:        WrapWord,
+			LineSpacing: 12,
+		},
+	}
+
+	base, err := ctx.LayoutText("alpha beta gamma delta", baseCfg)
+	if err != nil {
+		t.Fatalf("base LayoutText: %v", err)
+	}
+	spaced, err := ctx.LayoutText("alpha beta gamma delta", spacedCfg)
+	if err != nil {
+		t.Fatalf("spaced LayoutText: %v", err)
+	}
+	if len(base.Lines) < 2 || len(spaced.Lines) < 2 {
+		t.Fatalf("expected wrapped multi-line layouts, got %d and %d lines", len(base.Lines), len(spaced.Lines))
+	}
+
+	wantExtra := float32(len(base.Lines)-1) * 12
+	if got := spaced.Height - base.Height; got < wantExtra-0.5 || got > wantExtra+0.5 {
+		t.Fatalf("spaced.Height - base.Height = %f, want about %f", got, wantExtra)
+	}
+	if got := spaced.Lines[1].Rect.Y - base.Lines[1].Rect.Y; got < 11.5 || got > 12.5 {
+		t.Fatalf("second line Y delta = %f, want about 12", got)
+	}
+}
+
 func TestLayoutMarkup(t *testing.T) {
 	ctx := newTestContext(t)
 	defer ctx.Free()
