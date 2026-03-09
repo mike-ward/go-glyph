@@ -13,10 +13,10 @@ const (
 type WrapMode int
 
 const (
-	WrapNone     WrapMode = -1   // Do not wrap, even when a width is set.
-	WrapWord     WrapMode = iota // Wrap at word boundaries.
-	WrapChar                     // Wrap at character boundaries.
-	WrapWordChar                 // Wrap at word, fallback to char if word too long.
+	WrapNone     WrapMode = -1 // Do not wrap, even when a width is set.
+	WrapWord     WrapMode = 0  // Wrap at word boundaries (PANGO_WRAP_WORD).
+	WrapChar     WrapMode = 1  // Wrap at character boundaries (PANGO_WRAP_CHAR).
+	WrapWordChar WrapMode = 2  // Wrap at word, fallback to char (PANGO_WRAP_WORD_CHAR).
 )
 
 // TextOrientation defines the flow direction of text.
