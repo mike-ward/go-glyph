@@ -52,8 +52,10 @@ func NewRendererWithConfig(backend DrawBackend, scaleFactor float32,
 		safeScale = 1.0
 	}
 	maxEntries := cfg.MaxGlyphCacheEntries
-	if maxEntries < 256 {
+	if maxEntries == 0 {
 		maxEntries = 4096
+	} else if maxEntries < 256 {
+		maxEntries = 256
 	}
 	return &Renderer{
 		backend:         backend,

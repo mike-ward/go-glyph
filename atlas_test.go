@@ -160,7 +160,7 @@ func TestAtlasMultiPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer atlas.Free()
-	atlas.MaxHeight = 128 // Limit growth to force new pages.
+	atlas.MaxGlyphDimension = 128 // Limit growth to force new pages.
 
 	// Fill until we get multiple pages.
 	for i := 0; i < 20; i++ {
@@ -184,7 +184,7 @@ func TestAtlasPageReset(t *testing.T) {
 	}
 	defer atlas.Free()
 	atlas.MaxPages = 2
-	atlas.MaxHeight = 64 // No growth allowed — forces new pages/resets sooner.
+	atlas.MaxGlyphDimension = 64 // No growth allowed — forces new pages/resets sooner.
 
 	resetSeen := false
 	for i := 0; i < 50; i++ {

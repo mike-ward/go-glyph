@@ -1577,7 +1577,7 @@ type GlyphAtlas struct {
     MaxPages     int
     CurrentPage  int
     FrameCounter uint64
-    MaxHeight    int
+    MaxGlyphDimension int
     Garbage      []TextureID // Textures pending deletion.
     LastFrame    uint64
 }

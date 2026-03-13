@@ -33,7 +33,7 @@ type GlyphAtlas struct {
 	MaxPages     int
 	CurrentPage  int
 	FrameCounter uint64
-	MaxHeight    int
+	MaxGlyphDimension int
 	Garbage      []TextureID // Textures pending deletion.
 	LastFrame    uint64
 }
@@ -61,7 +61,7 @@ func NewGlyphAtlas(backend DrawBackend, w, h int) (*GlyphAtlas, error) {
 		Pages:       []AtlasPage{page},
 		MaxPages:    4,
 		CurrentPage: 0,
-		MaxHeight:   4096,
+		MaxGlyphDimension: 4096,
 	}, nil
 }
 
@@ -96,10 +96,10 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 	glyphW := bmp.Width
 	glyphH := bmp.Height
 
-	if glyphW > atlas.MaxHeight || glyphH > atlas.MaxHeight {
+	if glyphW > atlas.MaxGlyphDimension || glyphH > atlas.MaxGlyphDimension {
 		return CachedGlyph{}, false, 0, fmt.Errorf(
 			"glyph dimensions (%dx%d) exceed max atlas size (%d)",
-			glyphW, glyphH, atlas.MaxHeight)
+			glyphW, glyphH, atlas.MaxGlyphDimension)
 	}
 	if glyphW <= 0 || glyphH <= 0 {
 		return CachedGlyph{}, false, 0, nil // empty glyph
@@ -115,13 +115,13 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 		newY := page.getNextShelfY()
 		if newY+glyphH > page.Height {
 			// Page full — try grow, add page, or reset.
-			if page.Height < atlas.MaxHeight {
+			if page.Height < atlas.MaxGlyphDimension {
 				newHeight := page.Height * 2
 				if newHeight == 0 {
 					newHeight = 1024
 				}
-				if newHeight > atlas.MaxHeight {
-					newHeight = atlas.MaxHeight
+				if newHeight > atlas.MaxGlyphDimension {
+					newHeight = atlas.MaxGlyphDimension
 				}
 				if err := atlas.growPage(atlas.CurrentPage, newHeight); err != nil {
 					return CachedGlyph{}, false, 0, err

@@ -79,6 +79,9 @@ func (ctx *Context) Free() {
 	ctx.pangoCtx.Close()
 	ctx.fontMap.Close()
 	ctx.ftLib.Close()
+	ctx.pangoCtx = PangoContextW{}
+	ctx.fontMap = PangoFontMapW{}
+	ctx.ftLib = FTLibrary{}
 }
 
 // ScaleFactor returns the DPI scale factor.

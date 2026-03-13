@@ -30,7 +30,7 @@ type FTLibrary struct {
 func InitFreeType() (FTLibrary, error) {
 	var lib C.FT_Library
 	if C.FT_Init_FreeType(&lib) != 0 {
-		return FTLibrary{}, errorf("FT_Init_FreeType failed")
+		return FTLibrary{}, fmt.Errorf("FT_Init_FreeType failed")
 	}
 	return FTLibrary{ptr: lib}, nil
 }
@@ -63,7 +63,7 @@ type FTStroker struct {
 func NewFTStroker(lib FTLibrary) (FTStroker, error) {
 	var s C.FT_Stroker
 	if C.FT_Stroker_New(lib.ptr, &s) != 0 {
-		return FTStroker{}, errorf("FT_Stroker_New failed")
+		return FTStroker{}, fmt.Errorf("FT_Stroker_New failed")
 	}
 	return FTStroker{ptr: s}, nil
 }
@@ -594,12 +594,6 @@ func PangoAttrFontDescNew(desc *C.PangoFontDescription) *C.PangoAttribute {
 // PangoAttrShapeNew creates a shape attribute (for inline objects).
 func PangoAttrShapeNew(ink, logical *C.PangoRectangle) *C.PangoAttribute {
 	return C.pango_attr_shape_new(ink, logical)
-}
-
-// --- Helper ---
-
-func errorf(format string, args ...any) error {
-	return fmt.Errorf(format, args...)
 }
 
 // getFontFamilyName extracts the family name from an FT_Face
