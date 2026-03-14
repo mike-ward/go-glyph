@@ -3,6 +3,17 @@ package glyph
 /*
 #include <pango/pango.h>
 #include <pango/pangoft2.h>
+#include <stdlib.h>
+#include <string.h>
+
+// C callbacks for pango_attr_shape_new_with_data so Pango
+// copies/frees the null-terminated object ID string correctly.
+gpointer shape_data_copy(gconstpointer src) {
+    return g_strdup((const gchar *)src);
+}
+void shape_data_destroy(gpointer data) {
+    g_free(data);
+}
 */
 import "C"
 import (
@@ -199,19 +210,22 @@ func applyRichTextStyle(ctx *Context, list PangoAttrListW, style TextStyle,
 		}
 		inkRect := logicalRect
 
-		var dataPtr unsafe.Pointer
+		// Allocate a C null-terminated copy of the ID and
+		// register copy/destroy callbacks so Pango manages
+		// the lifetime across attribute copies.
+		var cData unsafe.Pointer
 		if obj.ID != "" {
-			clonedID := obj.ID + "\x00"
-			*clonedIDs = append(*clonedIDs, clonedID)
-			dataPtr = unsafe.Pointer(unsafe.StringData(clonedID))
+			cData = unsafe.Pointer(C.CString(obj.ID))
 		}
 
-		attr := PangoAttrShapeNew(&inkRect, &logicalRect)
+		attr := C.pango_attr_shape_new_with_data(
+			&inkRect, &logicalRect,
+			C.gpointer(cData),
+			C.PangoAttrDataCopyFunc(C.shape_data_copy),
+			C.GDestroyNotify(C.shape_data_destroy),
+		)
 		attr.start_index = C.guint(start)
 		attr.end_index = C.guint(end)
-
-		shapeAttr := (*C.PangoAttrShape)(unsafe.Pointer(attr))
-		shapeAttr.data = C.gpointer(dataPtr)
 
 		C.pango_attr_list_insert(list.ptr, attr)
 	}
