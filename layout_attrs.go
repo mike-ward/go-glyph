@@ -201,7 +201,7 @@ func applyRichTextStyle(ctx *Context, list PangoAttrListW, style TextStyle,
 
 		var dataPtr unsafe.Pointer
 		if obj.ID != "" {
-			clonedID := strings.Clone(obj.ID)
+			clonedID := obj.ID + "\x00"
 			*clonedIDs = append(*clonedIDs, clonedID)
 			dataPtr = unsafe.Pointer(unsafe.StringData(clonedID))
 		}
