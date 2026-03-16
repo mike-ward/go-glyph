@@ -87,6 +87,8 @@ type Item struct {
 	StrokeWidth float32
 	StrokeColor Color
 
+	CSSFont string // WASM only: CSS font string for glyph rasterization.
+
 	HasUnderline     bool
 	HasStrikethrough bool
 	HasBgColor       bool

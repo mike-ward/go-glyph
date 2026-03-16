@@ -1,5 +1,6 @@
-package glyph
+//go:build !js
 
+package glyph
 
 // drawLayoutImpl is the shared implementation for all DrawLayout* variants.
 func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
