@@ -1,3 +1,5 @@
+//go:build !js && !ios
+
 package glyph
 
 import "testing"
