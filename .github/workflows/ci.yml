@@ -65,6 +65,54 @@ jobs:
             )
           done
 
+  test-wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Build root package for WASM
+        env:
+          GOOS: js
+          GOARCH: wasm
+          CGO_ENABLED: "0"
+        run: go build ./...
+
+      - name: Build WASM backend modules
+        env:
+          GOOS: js
+          GOARCH: wasm
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+
+          modules=(
+            "backend/web"
+            "examples/showcase_web"
+          )
+
+          for module in "${modules[@]}"; do
+            echo "==> go build ./... ($module)"
+            ( cd "$module" && go build ./... )
+          done
+
+      - name: Vet WASM packages
+        env:
+          GOOS: js
+          GOARCH: wasm
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          go vet ./...
+          ( cd backend/web && go vet ./... )
+
   test-ios:
     runs-on: macos-latest
 
