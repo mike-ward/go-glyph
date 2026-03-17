@@ -125,7 +125,7 @@ func (r *Renderer) DrawLayoutPlaced(layout Layout,
 				continue
 			}
 			p := placements[i]
-			ch := string(rune(g.Codepoint))
+			ch := glyphText(layout.Text, g)
 
 			if p.Angle != 0 {
 				ctx2d.Call("save")

@@ -187,24 +187,22 @@ func (ctx *Context) buildLayout(text, cssFont string,
 			fontAscent, fontDescent, lineHeight, pixelScale)
 	}
 
-	// Measure each character with per-char font overrides.
+	// Measure each grapheme cluster with per-char font overrides.
 	type charInfo struct {
-		r      rune
+		text   string
 		width  float64
 		byteI  int
 		byteL  int
 		yShift float64
 		xPad   float64
 	}
-	chars := make([]charInfo, 0, len(text))
+	clusters := segmentGraphemes(text)
+	chars := make([]charInfo, 0, len(clusters))
 	currentFont := cssFont
-	byteIdx := 0
-	for _, r := range text {
-		runeLen := utf8.RuneLen(r)
-
+	for _, cl := range clusters {
 		var yShift, xPad float64
 		if overrides != nil {
-			if ov, ok := overrides[byteIdx]; ok {
+			if ov, ok := overrides[cl.byteI]; ok {
 				if ov.cssFont != currentFont {
 					ctx.ctx2d.Set("font", ov.cssFont)
 					currentFont = ov.cssFont
@@ -218,17 +216,16 @@ func (ctx *Context) buildLayout(text, cssFont string,
 		}
 
 		var w float64
-		if r == '\n' || r == '\r' {
+		if cl.text == "\n" || cl.text == "\r" {
 			w = 0
 		} else {
-			m := ctx.ctx2d.Call("measureText", string(r))
+			m := ctx.ctx2d.Call("measureText", cl.text)
 			w = m.Get("width").Float()
 		}
 		chars = append(chars, charInfo{
-			r: r, width: w + xPad, byteI: byteIdx, byteL: runeLen,
-			yShift: yShift, xPad: xPad,
+			text: cl.text, width: w + xPad, byteI: cl.byteI,
+			byteL: cl.byteL, yShift: yShift, xPad: xPad,
 		})
-		byteIdx += runeLen
 	}
 
 	// Restore base font.
@@ -252,14 +249,14 @@ func (ctx *Context) buildLayout(text, cssFont string,
 	lastSpace := -1
 
 	for i, ch := range chars {
-		if ch.r == '\n' {
+		if ch.text == "\n" {
 			lines = append(lines, lineInfo{lineStart, i, lineW})
 			lineStart = i + 1
 			lineW = 0
 			lastSpace = -1
 			continue
 		}
-		if ch.r == ' ' {
+		if ch.text == " " {
 			lastSpace = i
 		}
 
@@ -397,7 +394,7 @@ func (ctx *Context) buildLayout(text, cssFont string,
 
 		for ci := li.startChar; ci < li.endChar; ci++ {
 			ch := chars[ci]
-			if ch.r == '\n' {
+			if ch.text == "\n" {
 				continue
 			}
 
@@ -416,8 +413,8 @@ func (ctx *Context) buildLayout(text, cssFont string,
 			}
 
 			allGlyphs = append(allGlyphs, Glyph{
-				Index:     uint32(ch.r),
-				Codepoint: uint32(ch.r),
+				Index:     uint32(ch.byteI),
+				Codepoint: uint32(ch.byteL),
 				XOffset:   ch.xPad * pixelScale,
 				XAdvance:  ch.width * pixelScale,
 				YOffset:   ch.yShift * pixelScale,
@@ -436,13 +433,13 @@ func (ctx *Context) buildLayout(text, cssFont string,
 			charRectByIndex[ch.byteI] = crIdx
 
 			attrIdx := len(logAttrs)
-			isWS := ch.r == ' ' || ch.r == '\t'
-			prevWS := ci > 0 && (chars[ci-1].r == ' ' || chars[ci-1].r == '\t' || chars[ci-1].r == '\n')
+			isWS := ch.text == " " || ch.text == "\t"
+			prevWS := ci > 0 && (chars[ci-1].text == " " || chars[ci-1].text == "\t" || chars[ci-1].text == "\n")
 			logAttrs = append(logAttrs, LogAttr{
 				IsCursorPosition: true,
 				IsWordStart:      !isWS && prevWS,
-				IsWordEnd:        isWS && ci > 0 && chars[ci-1].r != ' ' && chars[ci-1].r != '\t',
-				IsLineBreak:      ch.r == '\n',
+				IsWordEnd:        isWS && ci > 0 && chars[ci-1].text != " " && chars[ci-1].text != "\t",
+				IsLineBreak:      ch.text == "\n",
 			})
 			logAttrByIndex[ch.byteI] = attrIdx
 			cx += ch.width
@@ -454,7 +451,7 @@ func (ctx *Context) buildLayout(text, cssFont string,
 		layoutLines = append(layoutLines, Line{
 			StartIndex:       startByteIdx,
 			Length:           lineLen,
-			IsParagraphStart: lineIdx == 0 || (li.startChar > 0 && chars[li.startChar-1].r == '\n'),
+			IsParagraphStart: lineIdx == 0 || (li.startChar > 0 && chars[li.startChar-1].text == "\n"),
 			Rect: Rect{
 				X:      float32(alignOffset * pixelScale),
 				Y:      float32(lineY * pixelScale),
@@ -515,23 +512,21 @@ func (ctx *Context) buildVerticalLayout(text, cssFont string,
 	logAttrByIndex := make(map[int]int)
 
 	penY := fontAscent // start at first baseline
-	byteIdx := 0
+	clusters := segmentGraphemes(text)
 
-	for _, r := range text {
-		runeLen := utf8.RuneLen(r)
-		if r == '\n' || r == '\r' {
-			byteIdx += runeLen
+	for _, cl := range clusters {
+		if cl.text == "\n" || cl.text == "\r" {
 			continue
 		}
 
 		// Measure char width for centering.
-		m := ctx.ctx2d.Call("measureText", string(r))
+		m := ctx.ctx2d.Call("measureText", cl.text)
 		charW := m.Get("width").Float()
 		centerX := (lineHeight - charW) / 2.0
 
 		allGlyphs = append(allGlyphs, Glyph{
-			Index:     uint32(r),
-			Codepoint: uint32(r),
+			Index:     uint32(cl.byteI),
+			Codepoint: uint32(cl.byteL),
 			XOffset:   centerX * pixelScale,
 			XAdvance:  0,
 			YAdvance:  -lineHeight * pixelScale,
@@ -545,16 +540,15 @@ func (ctx *Context) buildVerticalLayout(text, cssFont string,
 				Width:  float32(lineHeight * pixelScale),
 				Height: float32(lineHeight * pixelScale),
 			},
-			Index: byteIdx,
+			Index: cl.byteI,
 		})
-		charRectByIndex[byteIdx] = crIdx
+		charRectByIndex[cl.byteI] = crIdx
 
 		attrIdx := len(logAttrs)
 		logAttrs = append(logAttrs, LogAttr{IsCursorPosition: true})
-		logAttrByIndex[byteIdx] = attrIdx
+		logAttrByIndex[cl.byteI] = attrIdx
 
 		penY += lineHeight
-		byteIdx += runeLen
 	}
 
 	// End-of-text attr.

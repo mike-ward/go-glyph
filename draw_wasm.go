@@ -118,14 +118,13 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 			gx := cx + float32(g.XOffset)
 			gy := cy - float32(g.YOffset)
 
+			ch := glyphText(layout.Text, g)
 			if isIdentity {
-				ctx2d.Call("strokeText",
-					string(rune(g.Codepoint)),
+				ctx2d.Call("strokeText", ch,
 					float64(x+gx), float64(y+gy))
 			} else {
 				setCanvasTransform(ctx2d, transform, x, y)
-				ctx2d.Call("strokeText",
-					string(rune(g.Codepoint)),
+				ctx2d.Call("strokeText", ch,
 					float64(gx), float64(gy))
 				ctx2d.Call("setTransform", 1, 0, 0, 1, 0, 0)
 			}
@@ -184,7 +183,7 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 
 			gx := cx + float32(g.XOffset)
 			gy := cy - float32(g.YOffset)
-			ch := string(rune(g.Codepoint))
+			ch := glyphText(layout.Text, g)
 
 			if isIdentity {
 				ctx2d.Call("fillText", ch,
