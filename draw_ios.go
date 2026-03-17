@@ -1,8 +1,10 @@
-//go:build !js && !ios
+//go:build ios
 
 package glyph
 
-// drawLayoutImpl is the shared implementation for all DrawLayout* variants.
+// drawLayoutImpl is the shared implementation for all DrawLayout*
+// variants on iOS. Uses atlas-based rendering like the native
+// backend.
 func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 	transform AffineTransform, gradient *GradientConfig) {
 
@@ -10,7 +12,6 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 
 	hasGradient := gradient != nil && len(gradient.Stops) > 0
 
-	// Pre-compute gradient extents from ink bounds.
 	var gradXOff, gradYOff float32
 	gradW := float32(1.0)
 	gradH := float32(1.0)
@@ -23,7 +24,8 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 		}
 		if len(layout.Items) > 0 {
 			gradXOff = float32(layout.Items[0].X)
-			gradYOff = float32(layout.Items[0].Y) - float32(layout.Items[0].Ascent)
+			gradYOff = float32(layout.Items[0].Y) -
+				float32(layout.Items[0].Ascent)
 			for _, item := range layout.Items {
 				ix := float32(item.X)
 				iy := float32(item.Y) - float32(item.Ascent)
@@ -39,7 +41,7 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 
 	isIdentity := transform == AffineIdentity()
 
-	// 1. Draw backgrounds.
+	// 1. Backgrounds.
 	for _, item := range layout.Items {
 		if !item.HasBgColor {
 			continue
@@ -61,22 +63,11 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 		}
 	}
 
-	// 2. Ensure stroker if any item needs it.
-	for _, item := range layout.Items {
-		if item.HasStroke && !item.UseOriginalColor {
-			r.ensureStroker(item.FTFace)
-			break
-		}
-	}
-
-	// 3. Pass 1: Stroke outlines.
+	// 2. Stroke outlines (cached, same as fill path).
 	for _, item := range layout.Items {
 		if !item.HasStroke || item.UseOriginalColor {
 			continue
 		}
-		physW := item.StrokeWidth * r.scaleFactor
-		sRadius := int64(physW * 0.5 * 64)
-		r.configureStroker(sRadius)
 
 		cx := float32(item.X)
 		cy := float32(item.Y)
@@ -92,10 +83,12 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 				continue
 			}
 
-			cg := r.getOrLoadGlyph(item, g, 0, sRadius)
+			cg := r.getOrLoadGlyph(layout.Text, item, g, 0,
+				item.StrokeWidth)
 			r.touchPage(cg)
 
-			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
+			if cg.Width > 0 && cg.Height > 0 &&
+				cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				gx := cx + float32(g.XOffset)
 				gy := cy - float32(g.YOffset)
 				r.emitGlyphQuad(cg, gx, gy, x, y,
@@ -107,7 +100,7 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 		}
 	}
 
-	// 4. Pass 2: Fill glyphs.
+	// 3. Fill glyphs.
 	for _, item := range layout.Items {
 		if item.HasStroke && item.Color.A == 0 {
 			continue
@@ -128,21 +121,22 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 			}
 
 			targetX := cx + float32(g.XOffset)
-			drawOriginX, drawOriginY, bin := r.computeDrawOrigin(targetX, cy-float32(g.YOffset))
+			drawOriginX, drawOriginY, bin := r.computeDrawOrigin(
+				targetX, cy-float32(g.YOffset))
 			if item.UseOriginalColor {
 				bin = 0
 			}
 
-			cg := r.getOrLoadGlyph(item, g, bin, 0)
+			cg := r.getOrLoadGlyph(layout.Text, item, g, bin, 0)
 			r.touchPage(cg)
 
-			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
+			if cg.Width > 0 && cg.Height > 0 &&
+				cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				c := item.Color
 				if item.UseOriginalColor {
 					c = Color{255, 255, 255, 255}
 				}
 
-				// Compute glyph draw position.
 				scaleInv := r.scaleInv
 				drawX := (drawOriginX + float32(cg.Left)) * scaleInv
 				drawY := (drawOriginY - float32(cg.Top)) * scaleInv
@@ -166,10 +160,10 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 					}
 				}
 
-				// Apply gradient color if active.
 				if hasGradient {
 					c = gradientColorForGlyph(gradient, cx, cy,
-						float32(item.Ascent), gradXOff, gradYOff, gradW, gradH)
+						float32(item.Ascent),
+						gradXOff, gradYOff, gradW, gradH)
 				}
 
 				page := r.atlas.Pages[cg.Page]
@@ -181,10 +175,13 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 				}
 
 				if isIdentity {
-					dst := Rect{X: x + drawX, Y: y + drawY, Width: glyphW, Height: glyphH}
-					r.backend.DrawTexturedQuad(page.TextureID, src, dst, c)
+					dst := Rect{X: x + drawX, Y: y + drawY,
+						Width: glyphW, Height: glyphH}
+					r.backend.DrawTexturedQuad(
+						page.TextureID, src, dst, c)
 				} else {
-					dst := Rect{X: drawX, Y: drawY, Width: glyphW, Height: glyphH}
+					dst := Rect{X: drawX, Y: drawY,
+						Width: glyphW, Height: glyphH}
 					r.backend.DrawTexturedQuadTransformed(
 						page.TextureID, src, dst, c,
 						AffineTranslation(x, y).Multiply(transform))
@@ -195,37 +192,39 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 			cy -= float32(g.YAdvance)
 		}
 
-		// 5. Decorations (underline / strikethrough).
+		// 4. Decorations.
 		if item.HasUnderline || item.HasStrikethrough {
 			runX := float32(item.X)
 			runY := float32(item.Y)
 			decoColor := item.Color
 			if hasGradient {
-				decoColor = gradientColorForGlyph(gradient, runX, runY,
-					float32(item.Ascent), gradXOff, gradYOff, gradW, gradH)
+				decoColor = gradientColorForGlyph(gradient,
+					runX, runY, float32(item.Ascent),
+					gradXOff, gradYOff, gradW, gradH)
 			}
 
 			if item.HasUnderline {
 				lineX := runX
-				lineY := runY + float32(item.UnderlineOffset) - float32(item.UnderlineThickness)
+				lineY := runY + float32(item.UnderlineOffset) -
+					float32(item.UnderlineThickness)
 				lineW := float32(item.Width)
 				lineH := float32(item.UnderlineThickness)
-				r.emitDecorationRect(lineX, lineY, lineW, lineH, x, y,
-					transform, isIdentity, decoColor)
+				r.emitDecorationRect(lineX, lineY, lineW, lineH,
+					x, y, transform, isIdentity, decoColor)
 			}
 			if item.HasStrikethrough {
 				lineX := runX
-				lineY := runY - float32(item.StrikethroughOffset) + float32(item.StrikethroughThickness)
+				lineY := runY - float32(item.StrikethroughOffset) +
+					float32(item.StrikethroughThickness)
 				lineW := float32(item.Width)
 				lineH := float32(item.StrikethroughThickness)
-				r.emitDecorationRect(lineX, lineY, lineW, lineH, x, y,
-					transform, isIdentity, decoColor)
+				r.emitDecorationRect(lineX, lineY, lineW, lineH,
+					x, y, transform, isIdentity, decoColor)
 			}
 		}
 	}
 }
 
-// emitGlyphQuad draws a single glyph quad for the stroke pass.
 func (r *Renderer) emitGlyphQuad(cg CachedGlyph, gx, gy, ox, oy float32,
 	transform AffineTransform, isIdentity bool, color Color) {
 
@@ -254,10 +253,9 @@ func (r *Renderer) emitGlyphQuad(cg CachedGlyph, gx, gy, ox, oy float32,
 	}
 }
 
-// emitPlacedQuad draws a glyph at a GlyphPlacement position.
-func (r *Renderer) emitPlacedQuad(cg CachedGlyph, placement GlyphPlacement,
-	color Color, ascent, descent float32, useOriginalColor bool,
-	xAdvance float32) {
+func (r *Renderer) emitPlacedQuad(cg CachedGlyph,
+	placement GlyphPlacement, color Color, ascent, descent float32,
+	useOriginalColor bool, xAdvance float32) {
 
 	scaleInv := r.scaleInv
 	dx := float32(cg.Left) * scaleInv
@@ -291,8 +289,10 @@ func (r *Renderer) emitPlacedQuad(cg CachedGlyph, placement GlyphPlacement,
 
 	if placement.Angle != 0 {
 		transform := AffineRotation(placement.Angle)
-		combined := AffineTranslation(placement.X, placement.Y).Multiply(transform)
-		r.backend.DrawTexturedQuadTransformed(page.TextureID, src, dst, color, combined)
+		combined := AffineTranslation(placement.X, placement.Y).
+			Multiply(transform)
+		r.backend.DrawTexturedQuadTransformed(
+			page.TextureID, src, dst, color, combined)
 	} else {
 		dst.X += placement.X
 		dst.Y += placement.Y
@@ -300,13 +300,13 @@ func (r *Renderer) emitPlacedQuad(cg CachedGlyph, placement GlyphPlacement,
 	}
 }
 
-// emitDecorationRect draws an underline or strikethrough line.
 func (r *Renderer) emitDecorationRect(lx, ly, lw, lh, ox, oy float32,
 	transform AffineTransform, isIdentity bool, color Color) {
 
 	if isIdentity {
 		r.backend.DrawFilledRect(
-			Rect{X: ox + lx, Y: oy + ly, Width: lw, Height: lh}, color)
+			Rect{X: ox + lx, Y: oy + ly, Width: lw, Height: lh},
+			color)
 	} else {
 		tx, ty := transformLayoutPoint(transform, ox, oy, lx, ly)
 		r.backend.DrawFilledRect(
@@ -314,15 +314,14 @@ func (r *Renderer) emitDecorationRect(lx, ly, lw, lh, ox, oy float32,
 	}
 }
 
-// transformLayoutPoint applies transform around origin.
 func transformLayoutPoint(transform AffineTransform,
 	originX, originY, x, y float32) (float32, float32) {
 	tx, ty := transform.Apply(x, y)
 	return originX + tx, originY + ty
 }
 
-// gradientColorForGlyph computes the gradient color at a glyph position.
-func gradientColorForGlyph(gradient *GradientConfig, cx, cy, ascent float32,
+func gradientColorForGlyph(gradient *GradientConfig,
+	cx, cy, ascent float32,
 	gradXOff, gradYOff, gradW, gradH float32) Color {
 	if gradient == nil || len(gradient.Stops) == 0 {
 		return Color{0, 0, 0, 255}

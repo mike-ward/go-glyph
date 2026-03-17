@@ -23,6 +23,11 @@ main
 *.wasm
 wasm_exec.js
 
+# iOS build artifacts
+*.a
+libglyph.h
+*.xcuserstate
+
 # Test binary
 *.test
 

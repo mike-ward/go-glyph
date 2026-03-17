@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+const atlasGlyphPadding = 1
+
 // AtlasPage is a single texture page in a multi-page glyph atlas.
 type AtlasPage struct {
 	TextureID    TextureID
@@ -28,14 +30,14 @@ type Shelf struct {
 
 // GlyphAtlas manages a multi-page texture atlas for glyph bitmaps.
 type GlyphAtlas struct {
-	Backend      DrawBackend
-	Pages        []AtlasPage
-	MaxPages     int
-	CurrentPage  int
-	FrameCounter uint64
+	Backend           DrawBackend
+	Pages             []AtlasPage
+	MaxPages          int
+	CurrentPage       int
+	FrameCounter      uint64
 	MaxGlyphDimension int
-	Garbage      []TextureID // Textures pending deletion.
-	LastFrame    uint64
+	Garbage           []TextureID // Textures pending deletion.
+	LastFrame         uint64
 }
 
 // CachedGlyph stores atlas coordinates and bearing info for a
@@ -57,10 +59,10 @@ func NewGlyphAtlas(backend DrawBackend, w, h int) (*GlyphAtlas, error) {
 		return nil, err
 	}
 	return &GlyphAtlas{
-		Backend:     backend,
-		Pages:       []AtlasPage{page},
-		MaxPages:    4,
-		CurrentPage: 0,
+		Backend:           backend,
+		Pages:             []AtlasPage{page},
+		MaxPages:          4,
+		CurrentPage:       0,
 		MaxGlyphDimension: 4096,
 	}, nil
 }
@@ -95,6 +97,8 @@ func (atlas *GlyphAtlas) Cleanup(frame uint64) {
 func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, bool, int, error) {
 	glyphW := bmp.Width
 	glyphH := bmp.Height
+	paddedW := glyphW + atlasGlyphPadding*2
+	paddedH := glyphH + atlasGlyphPadding*2
 
 	if glyphW > atlas.MaxGlyphDimension || glyphH > atlas.MaxGlyphDimension {
 		return CachedGlyph{}, false, 0, fmt.Errorf(
@@ -109,11 +113,11 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 	resetOccurred := false
 	resetPageIdx := 0
 
-	shelfIdx := page.findBestShelf(glyphW, glyphH)
+	shelfIdx := page.findBestShelf(paddedW, paddedH)
 
 	if shelfIdx < 0 {
 		newY := page.getNextShelfY()
-		if newY+glyphH > page.Height {
+		if newY+paddedH > page.Height {
 			// Page full — try grow, add page, or reset.
 			if page.Height < atlas.MaxGlyphDimension {
 				newHeight := page.Height * 2
@@ -145,17 +149,17 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 			}
 
 			page = &atlas.Pages[atlas.CurrentPage]
-			shelfIdx = page.findBestShelf(glyphW, glyphH)
+			shelfIdx = page.findBestShelf(paddedW, paddedH)
 		}
 
 		if shelfIdx < 0 {
 			newY = page.getNextShelfY()
-			if newY+glyphH > page.Height {
+			if newY+paddedH > page.Height {
 				return CachedGlyph{}, false, 0, fmt.Errorf("glyph too large for atlas page")
 			}
 			page.Shelves = append(page.Shelves, Shelf{
 				Y:       newY,
-				Height:  glyphH,
+				Height:  paddedH,
 				CursorX: 0,
 				Width:   page.Width,
 			})
@@ -166,17 +170,19 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 	shelf := &page.Shelves[shelfIdx]
 	x := shelf.CursorX
 	y := shelf.Y
-	shelf.CursorX += glyphW
+	shelf.CursorX += paddedW
 
-	if err := copyBitmapToPage(page, bmp, x, y); err != nil {
+	if err := copyBitmapToPage(
+		page, bmp, x+atlasGlyphPadding, y+atlasGlyphPadding,
+	); err != nil {
 		return CachedGlyph{}, false, 0, err
 	}
 	page.Dirty = true
 	page.UsedPixels = page.calculateShelfUsedPixels()
 
 	cached := CachedGlyph{
-		X:      x,
-		Y:      y,
+		X:      x + atlasGlyphPadding,
+		Y:      y + atlasGlyphPadding,
 		Width:  glyphW,
 		Height: glyphH,
 		Left:   left,
@@ -328,7 +334,7 @@ func copyBitmapToPage(page *AtlasPage, bmp Bitmap, x, y int) error {
 	rowBytes := bmp.Width * 4
 	for row := 0; row < bmp.Height; row++ {
 		srcOff := row * rowBytes
-		dstOff := ((y + row) * page.Width + x) * 4
+		dstOff := ((y+row)*page.Width + x) * 4
 		copy(page.StagingBack[dstOff:dstOff+rowBytes], bmp.Data[srcOff:srcOff+rowBytes])
 	}
 	return nil

@@ -9,19 +9,19 @@ const PangoGlyphUnknownFlag = 0x10000000
 // Layout is the result of text shaping. It contains positioned glyph
 // runs, hit-test rectangles, line boundaries, and cursor attributes.
 type Layout struct {
-	Text             string
-	ClonedObjectIDs  []string
-	Items            []Item
-	Glyphs           []Glyph
-	CharRects        []CharRect
-	CharRectByIndex  map[int]int // byte index → CharRects index
-	Lines            []Line
-	LogAttrs         []LogAttr
-	LogAttrByIndex   map[int]int // byte index → LogAttrs index
-	Width            float32     // Logical width.
-	Height           float32     // Logical height.
-	VisualWidth      float32     // Ink width.
-	VisualHeight     float32     // Ink height.
+	Text            string
+	ClonedObjectIDs []string
+	Items           []Item
+	Glyphs          []Glyph
+	CharRects       []CharRect
+	CharRectByIndex map[int]int // byte index → CharRects index
+	Lines           []Line
+	LogAttrs        []LogAttr
+	LogAttrByIndex  map[int]int // byte index → LogAttrs index
+	Width           float32     // Logical width.
+	Height          float32     // Logical height.
+	VisualWidth     float32     // Ink width.
+	VisualHeight    float32     // Ink height.
 
 	// Pre-sorted cursor/word boundary caches, built once.
 	cursorPositions []int // Sorted valid cursor byte indices.
@@ -63,6 +63,7 @@ type Item struct {
 	RunText  string
 	FTFace   unsafe.Pointer // *C.FT_FaceRec, set during layout.
 	ObjectID string
+	Style    TextStyle
 
 	Width   float64
 	X       float64 // Run position relative to layout.

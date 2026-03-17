@@ -30,10 +30,10 @@ func (m *mockBackend) DeleteTexture(id TextureID) {
 	delete(m.textures, id)
 }
 
-func (m *mockBackend) DrawTexturedQuad(TextureID, Rect, Rect, Color)                       {}
-func (m *mockBackend) DrawFilledRect(Rect, Color)                                           {}
+func (m *mockBackend) DrawTexturedQuad(TextureID, Rect, Rect, Color)                             {}
+func (m *mockBackend) DrawFilledRect(Rect, Color)                                                {}
 func (m *mockBackend) DrawTexturedQuadTransformed(TextureID, Rect, Rect, Color, AffineTransform) {}
-func (m *mockBackend) DPIScale() float32                                                    { return 1.0 }
+func (m *mockBackend) DPIScale() float32                                                         { return 1.0 }
 
 // makeSyntheticBitmap creates a solid-colored RGBA bitmap.
 func makeSyntheticBitmap(w, h int, r, g, b, a byte) Bitmap {
@@ -69,8 +69,9 @@ func TestAtlasInsertSingle(t *testing.T) {
 	if cached.Left != 3 || cached.Top != 11 {
 		t.Errorf("cached bearing = (%d,%d), want (3,11)", cached.Left, cached.Top)
 	}
-	if cached.X != 0 || cached.Y != 0 {
-		t.Errorf("cached pos = (%d,%d), want (0,0)", cached.X, cached.Y)
+	if cached.X != atlasGlyphPadding || cached.Y != atlasGlyphPadding {
+		t.Errorf("cached pos = (%d,%d), want (%d,%d)",
+			cached.X, cached.Y, atlasGlyphPadding, atlasGlyphPadding)
 	}
 }
 
@@ -98,8 +99,9 @@ func TestAtlasInsertMultipleSameShelf(t *testing.T) {
 	if c1.Y != c2.Y {
 		t.Errorf("expected same shelf: Y1=%d Y2=%d", c1.Y, c2.Y)
 	}
-	if c2.X != c1.X+c1.Width {
-		t.Errorf("expected adjacent: c2.X=%d, want %d", c2.X, c1.X+c1.Width)
+	wantX := c1.X + c1.Width + atlasGlyphPadding*2
+	if c2.X != wantX {
+		t.Errorf("expected padded adjacency: c2.X=%d, want %d", c2.X, wantX)
 	}
 }
 
@@ -321,16 +323,16 @@ func TestAtlasCopyBitmapData(t *testing.T) {
 	}
 
 	page := &atlas.Pages[0]
-	// Check pixel at (0,0) in staging back.
-	idx := 0 // (0*64+0)*4
-	if page.StagingBack[idx] != 255 || page.StagingBack[idx+3] != 255 {
-		t.Errorf("pixel (0,0): R=%d A=%d, want R=255 A=255",
+	// Transparent padding should surround the bitmap.
+	idx := 0 // (0,0)
+	if page.StagingBack[idx] != 0 || page.StagingBack[idx+3] != 0 {
+		t.Errorf("pixel (0,0): R=%d A=%d, want R=0 A=0",
 			page.StagingBack[idx], page.StagingBack[idx+3])
 	}
-	// Check pixel at (1,0).
-	idx = 4
+	// Check pixel at the padded bitmap origin.
+	idx = ((atlasGlyphPadding * 64) + atlasGlyphPadding) * 4
 	if page.StagingBack[idx] != 255 || page.StagingBack[idx+1] != 0 {
-		t.Errorf("pixel (1,0): R=%d G=%d, want R=255 G=0",
+		t.Errorf("padded pixel: R=%d G=%d, want R=255 G=0",
 			page.StagingBack[idx], page.StagingBack[idx+1])
 	}
 }

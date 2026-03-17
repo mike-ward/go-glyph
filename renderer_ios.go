@@ -1,12 +1,10 @@
-//go:build !js && !ios
+//go:build ios
 
 package glyph
 
 /*
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_STROKER_H
+#include <CoreGraphics/CoreGraphics.h>
+#include <CoreText/CoreText.h>
 */
 import "C"
 import (
@@ -14,34 +12,29 @@ import (
 	"unsafe"
 )
 
-// Renderer rasterizes glyphs, manages the glyph cache and atlas,
-// and emits draw calls through the DrawBackend interface.
-// Not safe for concurrent use.
+// Renderer rasterizes glyphs via Core Graphics, manages the glyph
+// cache and atlas, and emits draw calls through DrawBackend.
 type Renderer struct {
 	backend         DrawBackend
 	atlas           *GlyphAtlas
 	cache           map[uint64]CachedGlyph
 	cacheAges       map[uint64]uint64
-	pageKeys        map[int][]uint64 // page → cache keys (reverse index)
+	pageKeys        map[int][]uint64
 	maxCacheEntries int
 	scaleFactor     float32
 	scaleInv        float32
-	ftStroker       FTStroker
-	hasStroker      bool
 }
 
 // RendererConfig configures the Renderer.
 type RendererConfig struct {
-	MaxGlyphCacheEntries int // Default 4096, minimum 256.
+	MaxGlyphCacheEntries int
 }
 
-// NewRenderer creates a Renderer with default 1024x1024 atlas.
 func NewRenderer(backend DrawBackend, scaleFactor float32) (*Renderer, error) {
-	return NewRendererWithConfig(backend, scaleFactor, 1024, 1024, RendererConfig{})
+	return NewRendererWithConfig(backend, scaleFactor, 1024, 1024,
+		RendererConfig{})
 }
 
-// NewRendererWithConfig creates a Renderer with custom atlas
-// size and configuration.
 func NewRendererWithConfig(backend DrawBackend, scaleFactor float32,
 	atlasW, atlasH int, cfg RendererConfig) (*Renderer, error) {
 
@@ -59,6 +52,7 @@ func NewRendererWithConfig(backend DrawBackend, scaleFactor float32,
 	} else if maxEntries < 256 {
 		maxEntries = 256
 	}
+
 	return &Renderer{
 		backend:         backend,
 		atlas:           atlas,
@@ -71,97 +65,52 @@ func NewRendererWithConfig(backend DrawBackend, scaleFactor float32,
 	}, nil
 }
 
-// Free releases renderer resources.
 func (r *Renderer) Free() {
-	if r.hasStroker {
-		r.ftStroker.Close()
-		r.hasStroker = false
-	}
 	r.atlas.Free()
 	r.cache = nil
 	r.cacheAges = nil
 	r.pageKeys = nil
 }
 
-// Commit uploads dirty atlas pages to the GPU. Call once per frame.
 func (r *Renderer) Commit() {
 	r.atlas.FrameCounter++
 	r.atlas.SwapAndUpload()
 }
 
-// DrawLayout renders a Layout at (x, y) using the identity transform.
 func (r *Renderer) DrawLayout(layout Layout, x, y float32) {
 	r.drawLayoutImpl(layout, x, y, AffineIdentity(), nil)
 }
 
-// DrawLayoutTransformed renders with an affine transform.
 func (r *Renderer) DrawLayoutTransformed(layout Layout, x, y float32,
 	transform AffineTransform) {
 	r.drawLayoutImpl(layout, x, y, transform, nil)
 }
 
-// DrawLayoutRotated renders rotated by angle (radians).
-func (r *Renderer) DrawLayoutRotated(layout Layout, x, y, angle float32) {
+func (r *Renderer) DrawLayoutRotated(layout Layout,
+	x, y, angle float32) {
 	r.drawLayoutImpl(layout, x, y, AffineRotation(angle), nil)
 }
 
-// DrawLayoutWithGradient renders with gradient colors.
 func (r *Renderer) DrawLayoutWithGradient(layout Layout, x, y float32,
 	gradient *GradientConfig) {
 	r.drawLayoutImpl(layout, x, y, AffineIdentity(), gradient)
 }
 
-// DrawLayoutTransformedWithGradient renders with both transform and gradient.
 func (r *Renderer) DrawLayoutTransformedWithGradient(layout Layout,
-	x, y float32, transform AffineTransform, gradient *GradientConfig) {
+	x, y float32, transform AffineTransform,
+	gradient *GradientConfig) {
 	r.drawLayoutImpl(layout, x, y, transform, gradient)
 }
 
-// DrawLayoutPlaced renders each glyph at individual placements.
-// Decorations are skipped. placements must match layout.Glyphs length.
-func (r *Renderer) DrawLayoutPlaced(layout Layout, placements []GlyphPlacement) {
-	if len(placements) != len(layout.Glyphs) || len(layout.Glyphs) == 0 {
+func (r *Renderer) DrawLayoutPlaced(layout Layout,
+	placements []GlyphPlacement) {
+	if len(placements) != len(layout.Glyphs) ||
+		len(layout.Glyphs) == 0 {
 		return
 	}
 	r.atlas.Cleanup(r.atlas.FrameCounter)
 
-	// Ensure stroker if needed.
-	for _, item := range layout.Items {
-		if item.HasStroke && !item.UseOriginalColor {
-			r.ensureStroker(item.FTFace)
-			break
-		}
-	}
-
-	// Pass 1: Stroke outlines.
-	for _, item := range layout.Items {
-		if !item.HasStroke || item.UseOriginalColor {
-			continue
-		}
-		physW := item.StrokeWidth * r.scaleFactor
-		sRadius := int64(physW * 0.5 * 64)
-		r.configureStroker(sRadius)
-
-		for i := item.GlyphStart; i < item.GlyphStart+item.GlyphCount; i++ {
-			if i < 0 || i >= len(layout.Glyphs) {
-				continue
-			}
-			g := layout.Glyphs[i]
-			if (g.Index & PangoGlyphUnknownFlag) != 0 {
-				continue
-			}
-			placement := placements[i]
-			cg := r.getOrLoadGlyph(item, g, 0, sRadius)
-			r.touchPage(cg)
-			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
-				r.emitPlacedQuad(cg, placement, item.StrokeColor,
-					float32(item.Ascent), float32(item.Descent),
-					item.UseOriginalColor, float32(g.XAdvance))
-			}
-		}
-	}
-
-	// Pass 2: Fill glyphs.
+	// Fill pass only (no stroke for placed glyphs on iOS).
 	for _, item := range layout.Items {
 		if item.HasStroke && item.Color.A == 0 {
 			continue
@@ -181,9 +130,10 @@ func (r *Renderer) DrawLayoutPlaced(layout Layout, placements []GlyphPlacement) 
 			}
 			placement := placements[i]
 			bin := r.computeSubpixelBin(placement.X, item.UseOriginalColor)
-			cg := r.getOrLoadGlyph(item, g, bin, 0)
+			cg := r.getOrLoadGlyph(layout.Text, item, g, bin, 0)
 			r.touchPage(cg)
-			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
+			if cg.Width > 0 && cg.Height > 0 &&
+				cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				r.emitPlacedQuad(cg, placement, c,
 					float32(item.Ascent), float32(item.Descent),
 					item.UseOriginalColor, float32(g.XAdvance))
@@ -192,60 +142,54 @@ func (r *Renderer) DrawLayoutPlaced(layout Layout, placements []GlyphPlacement) 
 	}
 }
 
-// Atlas returns the glyph atlas for external access (e.g. debug).
 func (r *Renderer) Atlas() *GlyphAtlas { return r.atlas }
 
-// --- internal helpers ---
+// getOrLoadGlyph retrieves from cache or rasterizes via CG.
+// strokeWidth > 0 requests a stroked (outline) glyph.
+func (r *Renderer) getOrLoadGlyph(text string, item Item, g Glyph,
+	bin int, strokeWidth float32) CachedGlyph {
 
-// getOrLoadGlyph retrieves a glyph from cache or loads via FreeType.
-func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int,
-	strokeRadius int64) CachedGlyph {
-
-	if item.FTFace == nil {
+	// On iOS, g.Index is a byte offset (not a glyph ID). Cache
+	// key must include the actual character content.
+	ch := glyphText(text, g)
+	if ch == "" {
 		return CachedGlyph{}
 	}
-	fontID := uint64(uintptr(item.FTFace))
 	targetH := int(float32(item.Ascent) * r.scaleFactor)
 
 	key := fnvOffsetBasis
-	key = fnvHashU64(key, fontID)
-	key = fnvHashU64(key, (uint64(g.Index)<<2)|uint64(bin))
-	key = fnvHashU64(key, uint64(strokeRadius)&0xFFFF)
+	key = fnvHashString(key, ch)
+	key = fnvHashU64(key, uint64(bin))
 	key = fnvHashU64(key, uint64(targetH))
+	key = fnvHashF32(key, strokeWidth)
+	key = fnvHashString(key, item.Style.FontName)
+	key = fnvHashF32(key, item.Style.Size)
+	key = fnvHashU64(key, uint64(item.Style.Typeface))
 
 	if cached, ok := r.cache[key]; ok {
 		r.cacheAges[key] = r.atlas.FrameCounter
 		if cached.Page < 0 {
-			return CachedGlyph{} // Negative cache hit.
+			return CachedGlyph{}
 		}
 		return cached
 	}
 
-	face := (C.FT_Face)(item.FTFace)
-	cfg := LoadGlyphConfig{
-		Face:         face,
-		Index:        g.Index,
-		TargetHeight: targetH,
-		SubpixelBin:  bin,
-	}
-
+	// Rasterize via Core Graphics.
 	var result LoadGlyphResult
 	var err error
-	if strokeRadius > 0 {
-		result, err = LoadStrokedGlyph(r.atlas, r.ftStroker, cfg, strokeRadius, r.scaleFactor)
+	if strokeWidth > 0 {
+		result, err = loadStrokedGlyphCG(r.atlas, ch, item,
+			strokeWidth, bin, r.scaleFactor)
 	} else {
-		result, err = LoadGlyph(r.atlas, cfg, r.scaleFactor)
+		result, err = loadGlyphCG(r.atlas, ch, item, bin, r.scaleFactor)
 	}
 	if err != nil {
-		// Negative cache: prevent repeated C library calls for
-		// the same failing glyph.
 		failed := CachedGlyph{Page: -1}
 		r.cache[key] = failed
 		r.cacheAges[key] = r.atlas.FrameCounter
 		return CachedGlyph{}
 	}
 
-	// Invalidate cache entries on reset page.
 	if result.ResetOccurred {
 		for _, k := range r.pageKeys[result.ResetPage] {
 			delete(r.cache, k)
@@ -254,14 +198,14 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int,
 		delete(r.pageKeys, result.ResetPage)
 	}
 
-	// Evict oldest if at capacity.
 	if len(r.cache) >= r.maxCacheEntries {
 		r.evictOldestGlyph()
 	}
 
 	r.cache[key] = result.Cached
 	r.cacheAges[key] = r.atlas.FrameCounter
-	r.pageKeys[result.Cached.Page] = append(r.pageKeys[result.Cached.Page], key)
+	r.pageKeys[result.Cached.Page] = append(
+		r.pageKeys[result.Cached.Page], key)
 	return result.Cached
 }
 
@@ -295,26 +239,11 @@ func (r *Renderer) removePageKey(page int, key uint64) {
 	}
 }
 
-func (r *Renderer) ensureStroker(facePtr unsafe.Pointer) {
-	if r.hasStroker {
-		return
-	}
-	face := (C.FT_Face)(facePtr)
-	lib := face.glyph.library
-	var s C.FT_Stroker
-	if C.FT_Stroker_New(lib, &s) == 0 {
-		r.ftStroker = FTStroker{ptr: s}
-		r.hasStroker = true
-	}
-}
+// ensureStroker is a no-op on iOS (uses CG path stroking).
+func (r *Renderer) ensureStroker(_ unsafe.Pointer) {}
 
-func (r *Renderer) configureStroker(radius int64) {
-	if !r.hasStroker {
-		return
-	}
-	C.FT_Stroker_Set(r.ftStroker.ptr, C.FT_Fixed(radius),
-		C.FT_STROKER_LINECAP_ROUND, C.FT_STROKER_LINEJOIN_ROUND, 0)
-}
+// configureStroker is a no-op on iOS.
+func (r *Renderer) configureStroker(_ int64) {}
 
 func (r *Renderer) touchPage(cg CachedGlyph) {
 	if cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
@@ -344,3 +273,13 @@ func (r *Renderer) computeDrawOrigin(targetX, targetY float32) (drawOriginX, dra
 	return
 }
 
+// glyphText extracts the original cluster text for a glyph.
+// Index stores byte offset, Codepoint stores byte length.
+func glyphText(text string, g Glyph) string {
+	start := int(g.Index)
+	end := start + int(g.Codepoint)
+	if start >= 0 && end <= len(text) {
+		return text[start:end]
+	}
+	return ""
+}
