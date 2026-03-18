@@ -488,6 +488,68 @@ func TestAffineMultiply(t *testing.T) {
 	}
 }
 
+func TestVerticalGradientSingleLineProducesDistinctColors(t *testing.T) {
+	backend := newRecordingBackend()
+	ts, err := NewTextSystem(backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Free()
+
+	cfg := TextConfig{
+		Style: TextStyle{FontName: "Sans 24"},
+	}
+	layout, err := ts.LayoutText("ABC", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gradient := &GradientConfig{
+		Direction: GradientVertical,
+		Stops: []GradientStop{
+			{Position: 0, Color: Color{255, 0, 0, 255}},
+			{Position: 1, Color: Color{0, 0, 255, 255}},
+		},
+	}
+	ts.DrawLayoutWithGradient(layout, 50, 50, gradient)
+	ts.Commit()
+
+	if len(backend.drawCalls) < 2 {
+		t.Fatalf("expected multiple draw calls for strip rendering, got %d",
+			len(backend.drawCalls))
+	}
+
+	// Verify not all colors are identical (flat color = broken).
+	first := backend.drawCalls[0].Color
+	allSame := true
+	for _, dc := range backend.drawCalls[1:] {
+		if dc.Color != first {
+			allSame = false
+			break
+		}
+	}
+	if allSame {
+		t.Error("all strip colors identical; vertical gradient not working")
+	}
+
+	// Verify strip src rects tile correctly (no gaps, no overlap)
+	// by checking that consecutive strips within the same glyph
+	// have contiguous Y coordinates.
+	for i := 1; i < len(backend.drawCalls); i++ {
+		prev := backend.drawCalls[i-1]
+		curr := backend.drawCalls[i]
+		// Same src X means same glyph column.
+		if prev.Src.X != curr.Src.X {
+			continue
+		}
+		gap := curr.Src.Y - (prev.Src.Y + prev.Src.Height)
+		if gap < -0.01 || gap > 0.01 {
+			t.Errorf("strip src gap at index %d: prev.Y+H=%f, curr.Y=%f",
+				i, prev.Src.Y+prev.Src.Height, curr.Src.Y)
+		}
+	}
+}
+
 func TestTextSystemDecorations(t *testing.T) {
 	backend := newRecordingBackend()
 	ts, err := NewTextSystem(backend)

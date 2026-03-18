@@ -180,7 +180,43 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 					Height: float32(cg.Height),
 				}
 
-				if isIdentity {
+				// Vertical gradient: split glyph into horizontal
+				// strips so each samples the gradient at its Y
+				// midpoint, producing true top-to-bottom color
+				// variation within a single line.
+				if hasGradient &&
+					gradient.Direction == GradientVertical &&
+					glyphH > 0 {
+
+					numStrips := gradientStripCount(glyphH)
+					stripSrcH := src.Height / float32(numStrips)
+					stripDstH := glyphH / float32(numStrips)
+					glyphTopY := float32(item.Y) - float32(item.Ascent)
+					for s := range numStrips {
+						sf := float32(s)
+						stripSrc := Rect{
+							X: src.X, Y: src.Y + sf*stripSrcH,
+							Width: src.Width, Height: stripSrcH,
+						}
+						stripDstY := drawY + sf*stripDstH
+						stripMidY := glyphTopY + (sf+0.5)*stripDstH
+						t := clamp01((stripMidY - gradYOff) / gradH)
+						sc := GradientColorAt(gradient.Stops, t)
+
+						if isIdentity {
+							dst := Rect{X: x + drawX, Y: y + stripDstY,
+								Width: glyphW, Height: stripDstH}
+							r.backend.DrawTexturedQuad(
+								page.TextureID, stripSrc, dst, sc)
+						} else {
+							dst := Rect{X: drawX, Y: stripDstY,
+								Width: glyphW, Height: stripDstH}
+							r.backend.DrawTexturedQuadTransformed(
+								page.TextureID, stripSrc, dst, sc,
+								AffineTranslation(x, y).Multiply(transform))
+						}
+					}
+				} else if isIdentity {
 					dst := Rect{X: x + drawX, Y: y + drawY, Width: glyphW, Height: glyphH}
 					r.backend.DrawTexturedQuad(page.TextureID, src, dst, c)
 				} else {
@@ -320,6 +356,21 @@ func transformLayoutPoint(transform AffineTransform,
 	tx, ty := transform.Apply(x, y)
 	return originX + tx, originY + ty
 }
+
+// gradientStripCount returns the number of horizontal strips to use
+// when rendering a vertical gradient within a single glyph.
+func gradientStripCount(glyphH float32) int {
+	n := int(glyphH + 0.5)
+	if n < 4 {
+		n = 4
+	}
+	if n > 16 {
+		n = 16
+	}
+	return n
+}
+
+func clamp01(v float32) float32 { return max(0, min(1, v)) }
 
 // gradientColorForGlyph computes the gradient color at a glyph position.
 func gradientColorForGlyph(gradient *GradientConfig, cx, cy, ascent float32,

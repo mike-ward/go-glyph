@@ -153,8 +153,20 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 		ctx2d.Set("font", cssFont)
 		ctx2d.Set("textBaseline", "alphabetic")
 
-		// Set base color (may be overridden per-glyph for gradient).
-		if !hasGradient {
+		// For vertical gradient, create a Canvas2D linear gradient
+		// that the browser composites per-pixel.
+		if hasGradient && gradient.Direction == GradientVertical {
+			canvasGrad := ctx2d.Call("createLinearGradient",
+				0, float64(y+gradYOff),
+				0, float64(y+gradYOff+gradH))
+			for _, stop := range gradient.Stops {
+				canvasGrad.Call("addColorStop",
+					float64(stop.Position),
+					cssColorString(stop.Color))
+			}
+			ctx2d.Set("fillStyle", canvasGrad)
+			ctx2d.Set("globalAlpha", 1.0)
+		} else if !hasGradient {
 			ctx2d.Set("globalAlpha", float64(c.A)/255.0)
 			ctx2d.Set("fillStyle", cssColorString(c))
 		}
@@ -173,7 +185,9 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 				continue
 			}
 
-			if hasGradient {
+			// Per-glyph color for horizontal gradient only.
+			if hasGradient &&
+				gradient.Direction == GradientHorizontal {
 				gc := gradientColorForGlyph(gradient, cx, cy,
 					float32(item.Ascent),
 					gradXOff, gradYOff, gradW, gradH)
