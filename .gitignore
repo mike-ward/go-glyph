@@ -10,7 +10,7 @@
 !LICENSE
 
 # Binaries
-main
+/main
 *.exe
 *.exe~
 *.dll
@@ -40,6 +40,10 @@ go.work.sum
 
 # Dependency directory
 vendor/
+
+# Android NDK build artifacts
+deps/
+.build_android_deps/
 
 # IDE
 .idea/

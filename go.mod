@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	github.com/princjef/gomarkdoc v1.1.0
+	github.com/rivo/uniseg v0.2.0
 	golang.org/x/pkgsite v0.0.0-20260306132053-fd3717b20fe8
 )
 
@@ -36,7 +37,6 @@ require (
 	github.com/pelletier/go-toml v1.9.1 // indirect
 	github.com/princjef/mageutil v1.0.0 // indirect
 	github.com/princjef/termdiff v0.1.0 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect

@@ -176,6 +176,81 @@ jobs:
           go vet -tags ios ./...
           ( cd backend/ios && go vet ./... )
 
+  test-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            backend/android/go.sum
+            examples/showcase_android/go.sum
+
+      - name: Resolve Android NDK toolchain
+        id: ndk
+        run: |
+          TC="${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo "cc=${TC}/aarch64-linux-android21-clang" >> "$GITHUB_OUTPUT"
+
+      - name: Build root package for Android
+        env:
+          CGO_ENABLED: "1"
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ steps.ndk.outputs.cc }}
+        run: go build ./...
+
+      - name: Build Android backend modules
+        env:
+          CGO_ENABLED: "1"
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ steps.ndk.outputs.cc }}
+        run: |
+          set -euo pipefail
+
+          modules=(
+            "backend/android"
+            "examples/showcase_android"
+          )
+
+          for module in "${modules[@]}"; do
+            echo "==> go build ./... ($module)"
+            ( cd "$module" && go build ./... )
+          done
+
+      - name: Compile tests
+        env:
+          CGO_ENABLED: "1"
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ steps.ndk.outputs.cc }}
+        run: |
+          set -euo pipefail
+          echo "==> go test -c (root)"
+          go test -c -o /dev/null .
+          echo "==> go test -c (backend/android)"
+          ( cd backend/android && go test -c -o /dev/null . )
+          echo "==> go test -c (examples/showcase_android)"
+          ( cd examples/showcase_android && go test -c -o /dev/null . )
+
+      - name: Vet Android packages
+        env:
+          CGO_ENABLED: "1"
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ steps.ndk.outputs.cc }}
+        run: |
+          set -euo pipefail
+          go vet ./...
+          ( cd backend/android && go vet ./... )
+
   test-macos:
     runs-on: macos-latest
 
