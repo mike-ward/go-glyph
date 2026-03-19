@@ -11,7 +11,7 @@ set -euo pipefail
 
 FREETYPE_VER="2.13.3"
 HARFBUZZ_VER="10.2.0"
-API_LEVEL=24
+API_LEVEL="${ANDROID_API_LEVEL:-21}"
 ARCH=aarch64
 ABI=arm64-v8a
 
