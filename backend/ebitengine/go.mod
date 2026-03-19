@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	github.com/mike-ward/go-glyph v1.0.0
+	github.com/mike-ward/go-glyph v1.4.0
 )
 
 require (
@@ -12,8 +12,7 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
 	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 )
-
-replace github.com/mike-ward/go-glyph => ../..
