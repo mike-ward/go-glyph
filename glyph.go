@@ -14,10 +14,11 @@ type cachedLayout struct {
 // TextSystem is the main entry point for text rendering. It owns
 // the Context, Renderer, and a layout cache.
 type TextSystem struct {
-	ctx          *Context
-	renderer     *Renderer
-	cache        map[uint64]*cachedLayout
-	evictionAge  int64 // Milliseconds. Default 5000.
+	ctx             *Context
+	renderer        *Renderer
+	cache           map[uint64]*cachedLayout
+	evictionAge     int64 // Milliseconds. Default 5000.
+	maxCacheEntries int   // Max layout cache entries. Default 1024.
 }
 
 // NewTextSystem creates a TextSystem with default atlas size (1024x1024).
@@ -33,10 +34,11 @@ func NewTextSystem(backend DrawBackend) (*TextSystem, error) {
 		return nil, err
 	}
 	return &TextSystem{
-		ctx:         ctx,
-		renderer:    renderer,
-		cache:       make(map[uint64]*cachedLayout),
-		evictionAge: 5000,
+		ctx:             ctx,
+		renderer:        renderer,
+		cache:           make(map[uint64]*cachedLayout),
+		evictionAge:     5000,
+		maxCacheEntries: 1024,
 	}, nil
 }
 
@@ -59,10 +61,11 @@ func NewTextSystemAtlasSize(backend DrawBackend, atlasW, atlasH int) (*TextSyste
 		return nil, err
 	}
 	return &TextSystem{
-		ctx:         ctx,
-		renderer:    renderer,
-		cache:       make(map[uint64]*cachedLayout),
-		evictionAge: 5000,
+		ctx:             ctx,
+		renderer:        renderer,
+		cache:           make(map[uint64]*cachedLayout),
+		evictionAge:     5000,
+		maxCacheEntries: 1024,
 	}, nil
 }
 
@@ -133,11 +136,16 @@ func (ts *TextSystem) Commit() {
 }
 
 // AddFontFile registers a font file (TTF/OTF).
+// Clears the layout cache to prevent stale FT_Face pointers.
 func (ts *TextSystem) AddFontFile(path string) error {
 	if err := ValidateFontPath(path, "AddFontFile"); err != nil {
 		return err
 	}
-	return ts.ctx.AddFontFile(path)
+	if err := ts.ctx.AddFontFile(path); err != nil {
+		return err
+	}
+	clear(ts.cache)
+	return nil
 }
 
 // ResolveFontName returns the actual font family name that Pango
@@ -251,6 +259,9 @@ func (ts *TextSystem) getOrCreateLayout(text string, cfg TextConfig) (*cachedLay
 		lastAccess: time.Now().UnixMilli(),
 	}
 	ts.cache[key] = item
+	if ts.maxCacheEntries > 0 && len(ts.cache) > ts.maxCacheEntries {
+		ts.evictOldestLayout()
+	}
 	return item, nil
 }
 
@@ -331,6 +342,20 @@ func (ts *TextSystem) pruneCache() {
 		if now-item.lastAccess > ts.evictionAge {
 			delete(ts.cache, k)
 		}
+	}
+}
+
+func (ts *TextSystem) evictOldestLayout() {
+	var oldestKey uint64
+	oldestTime := int64(math.MaxInt64)
+	for k, item := range ts.cache {
+		if item.lastAccess < oldestTime {
+			oldestTime = item.lastAccess
+			oldestKey = k
+		}
+	}
+	if oldestTime < math.MaxInt64 {
+		delete(ts.cache, oldestKey)
 	}
 }
 

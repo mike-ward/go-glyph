@@ -469,6 +469,56 @@ func TestTextSystemAddFontFile(t *testing.T) {
 	}
 }
 
+func TestLayoutCacheMaxEntries(t *testing.T) {
+	backend := newRecordingBackend()
+	ts, err := NewTextSystem(backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Free()
+
+	ts.maxCacheEntries = 10
+
+	// Insert more than max entries.
+	for i := range 20 {
+		cfg := TextConfig{
+			Style: TextStyle{FontName: "Sans 14", Size: float32(i + 1)},
+		}
+		_, err := ts.LayoutTextCached("test", cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if len(ts.cache) > 10 {
+		t.Errorf("cache size %d exceeds max %d", len(ts.cache), 10)
+	}
+}
+
+func TestAddFontFileClearsCache(t *testing.T) {
+	backend := newRecordingBackend()
+	ts, err := NewTextSystem(backend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Free()
+
+	cfg := TextConfig{Style: TextStyle{FontName: "Sans 14"}}
+	_, err = ts.LayoutTextCached("cached", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ts.cache) == 0 {
+		t.Fatal("cache should not be empty")
+	}
+
+	// AddFontFile with invalid path still fails, cache unchanged.
+	_ = ts.AddFontFile("/nonexistent.ttf")
+	if len(ts.cache) == 0 {
+		t.Error("cache should not be cleared on font load failure")
+	}
+}
+
 func TestAffineMultiply(t *testing.T) {
 	// Translation then rotation should compose.
 	trans := AffineTranslation(10, 20)
