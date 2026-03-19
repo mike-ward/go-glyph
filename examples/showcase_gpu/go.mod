@@ -8,3 +8,5 @@ require (
 	github.com/mike-ward/go-glyph/examples/showcase_sections v1.0.0
 	github.com/veandco/go-sdl2 v0.4.40
 )
+
+require github.com/rivo/uniseg v0.2.0 // indirect
