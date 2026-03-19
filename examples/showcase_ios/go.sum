@@ -1,5 +1,5 @@
-github.com/mike-ward/go-glyph v1.4.0 h1:Ei/WYw+fQj3fRTcSo+K6iYaEBKJaciu1FtVFDtcV99Y=
-github.com/mike-ward/go-glyph v1.4.0/go.mod h1:VfDN4On7weOcfvHX8AxPxeRqPhyDPGkE+jp0OIxEYS0=
+github.com/mike-ward/go-glyph v1.4.1 h1:BuV4H69/z+T4F8a8iC2HUec0YP3l1bbpVEruOrYnFJg=
+github.com/mike-ward/go-glyph v1.4.1/go.mod h1:VfDN4On7weOcfvHX8AxPxeRqPhyDPGkE+jp0OIxEYS0=
 github.com/mike-ward/go-glyph/backend/ios v1.1.0 h1:3JveLefcwCkmRLoxos7KKWsX+5+hJpb141mqIzQftLM=
 github.com/mike-ward/go-glyph/backend/ios v1.1.0/go.mod h1:lgYXxRMPysx6z3LVC4yzBK3QNL7u7V28At6DiSe1nxA=
 github.com/mike-ward/go-glyph/examples/showcase_sections v1.0.0 h1:0kXXzlWXpcAq+oau4GTCIsfWgFa9ubgqhoaJ8ikIoIc=
