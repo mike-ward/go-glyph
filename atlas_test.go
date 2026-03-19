@@ -141,7 +141,7 @@ func TestAtlasPageGrow(t *testing.T) {
 	defer atlas.Free()
 
 	// Fill with 32px tall glyphs — first two fit (64px), third triggers grow.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		bmp := makeSyntheticBitmap(60, 32, 255, 255, 255, 255)
 		_, _, _, err := atlas.InsertBitmap(bmp, 0, 0)
 		if err != nil {
@@ -165,7 +165,7 @@ func TestAtlasMultiPage(t *testing.T) {
 	atlas.MaxGlyphDimension = 128 // Limit growth to force new pages.
 
 	// Fill until we get multiple pages.
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		bmp := makeSyntheticBitmap(60, 32, 255, 255, 255, 255)
 		_, _, _, err := atlas.InsertBitmap(bmp, 0, 0)
 		if err != nil {
@@ -189,7 +189,7 @@ func TestAtlasPageReset(t *testing.T) {
 	atlas.MaxGlyphDimension = 64 // No growth allowed — forces new pages/resets sooner.
 
 	resetSeen := false
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		bmp := makeSyntheticBitmap(60, 30, 255, 255, 255, 255)
 		_, reset, _, err := atlas.InsertBitmap(bmp, 0, 0)
 		if err != nil {

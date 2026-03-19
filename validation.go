@@ -44,7 +44,7 @@ func ValidateFontPath(path string, location string) error {
 	if len(path) == 0 {
 		return fmt.Errorf("empty font path not allowed at %s", location)
 	}
-	for _, part := range strings.Split(filepath.ToSlash(path), "/") {
+	for part := range strings.SplitSeq(filepath.ToSlash(path), "/") {
 		if part == ".." {
 			return fmt.Errorf("path traversal (..) not allowed in font path at %s", location)
 		}

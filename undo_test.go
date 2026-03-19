@@ -113,7 +113,7 @@ func TestUndoManagerUndoDepth(t *testing.T) {
 
 func TestUndoManagerHistoryLimit(t *testing.T) {
 	um := NewUndoManager(3)
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		r := InsertText("", 0, "x")
 		um.RecordMutation(r, "x", 0, 0)
 		um.BreakCoalescing()

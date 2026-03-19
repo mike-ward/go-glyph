@@ -80,7 +80,7 @@ func main() {
 
 	// Event watcher fires during live resize so the content
 	// redraws continuously while the user drags.
-	sdl.AddEventWatchFunc(func(event sdl.Event, _ interface{}) bool {
+	sdl.AddEventWatchFunc(func(event sdl.Event, _ any) bool {
 		if ev, ok := event.(*sdl.WindowEvent); ok {
 			if ev.Event == sdl.WINDOWEVENT_EXPOSED ||
 				ev.Event == sdl.WINDOWEVENT_SIZE_CHANGED {

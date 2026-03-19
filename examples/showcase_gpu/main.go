@@ -71,7 +71,7 @@ func main() {
 		sects:   ss.BuildSections(),
 	}
 
-	sdl.AddEventWatchFunc(func(ev sdl.Event, _ interface{}) bool {
+	sdl.AddEventWatchFunc(func(ev sdl.Event, _ any) bool {
 		if we, ok := ev.(*sdl.WindowEvent); ok {
 			if we.Event == sdl.WINDOWEVENT_EXPOSED ||
 				we.Event == sdl.WINDOWEVENT_SIZE_CHANGED {
