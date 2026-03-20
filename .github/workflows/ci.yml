@@ -20,9 +20,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            backend/ebitengine/go.sum
-            backend/gpu/go.sum
-            backend/sdl2/go.sum
             examples/demo/go.sum
             examples/demo_gpu/go.sum
             examples/demo_sdl2/go.sum
@@ -40,17 +37,18 @@ jobs:
             libsdl2-dev \
             pkg-config
 
-      - name: Test all modules
+      - name: Test root module
+        env:
+          CGO_ENABLED: "1"
+        run: go test ./...
+
+      - name: Build examples
         env:
           CGO_ENABLED: "1"
         run: |
           set -euo pipefail
 
           modules=(
-            "."
-            "backend/ebitengine"
-            "backend/gpu"
-            "backend/sdl2"
             "examples/demo"
             "examples/demo_gpu"
             "examples/demo_sdl2"
@@ -58,11 +56,8 @@ jobs:
           )
 
           for module in "${modules[@]}"; do
-            echo "==> go test ./... ($module)"
-            (
-              cd "$module"
-              go test ./...
-            )
+            echo "==> go build ./... ($module)"
+            ( cd "$module" && go build ./... )
           done
 
   test-wasm:
@@ -85,33 +80,19 @@ jobs:
           CGO_ENABLED: "0"
         run: go build ./...
 
-      - name: Build WASM backend modules
+      - name: Build WASM example
         env:
           GOOS: js
           GOARCH: wasm
           CGO_ENABLED: "0"
-        run: |
-          set -euo pipefail
-
-          modules=(
-            "backend/web"
-            "examples/showcase_web"
-          )
-
-          for module in "${modules[@]}"; do
-            echo "==> go build ./... ($module)"
-            ( cd "$module" && go build ./... )
-          done
+        run: ( cd examples/showcase_web && go build ./... )
 
       - name: Vet WASM packages
         env:
           GOOS: js
           GOARCH: wasm
           CGO_ENABLED: "0"
-        run: |
-          set -euo pipefail
-          go vet ./...
-          ( cd backend/web && go vet ./... )
+        run: go vet ./...
 
   test-ios:
     runs-on: macos-latest
@@ -142,7 +123,7 @@ jobs:
           CGO_LDFLAGS: "-isysroot ${{ steps.sdk.outputs.sdk_path }} -mios-simulator-version-min=17.0"
         run: go build -tags ios ./...
 
-      - name: Build iOS backend modules
+      - name: Build iOS example
         env:
           CGO_ENABLED: "1"
           GOOS: ios
@@ -150,18 +131,7 @@ jobs:
           CC: ${{ steps.sdk.outputs.cc_path }}
           CGO_CFLAGS: "-isysroot ${{ steps.sdk.outputs.sdk_path }} -mios-simulator-version-min=17.0"
           CGO_LDFLAGS: "-isysroot ${{ steps.sdk.outputs.sdk_path }} -mios-simulator-version-min=17.0"
-        run: |
-          set -euo pipefail
-
-          modules=(
-            "backend/ios"
-            "examples/showcase_ios"
-          )
-
-          for module in "${modules[@]}"; do
-            echo "==> go build ./... ($module)"
-            ( cd "$module" && go build ./... )
-          done
+        run: ( cd examples/showcase_ios && go build ./... )
 
       - name: Vet iOS packages
         env:
@@ -171,10 +141,7 @@ jobs:
           CC: ${{ steps.sdk.outputs.cc_path }}
           CGO_CFLAGS: "-isysroot ${{ steps.sdk.outputs.sdk_path }} -mios-simulator-version-min=17.0"
           CGO_LDFLAGS: "-isysroot ${{ steps.sdk.outputs.sdk_path }} -mios-simulator-version-min=17.0"
-        run: |
-          set -euo pipefail
-          go vet -tags ios ./...
-          ( cd backend/ios && go vet ./... )
+        run: go vet -tags ios ./...
 
   test-android:
     runs-on: ubuntu-latest
@@ -189,7 +156,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            backend/android/go.sum
             examples/showcase_android/go.sum
 
       - name: Resolve Android NDK toolchain
@@ -209,25 +175,14 @@ jobs:
           CC: ${{ steps.ndk.outputs.cc }}
         run: go build ./...
 
-      - name: Build Android backend modules
+      - name: Build Android example
         env:
           CGO_ENABLED: "1"
           GOOS: android
           GOARCH: arm64
           CC: ${{ steps.ndk.outputs.cc }}
           CGO_LDFLAGS: "-L${{ github.workspace }}/deps/lib/arm64-v8a"
-        run: |
-          set -euo pipefail
-
-          modules=(
-            "backend/android"
-            "examples/showcase_android"
-          )
-
-          for module in "${modules[@]}"; do
-            echo "==> go build ./... ($module)"
-            ( cd "$module" && go build ./... )
-          done
+        run: ( cd examples/showcase_android && go build ./... )
 
       - name: Compile tests
         env:
@@ -238,11 +193,7 @@ jobs:
           CGO_LDFLAGS: "-L${{ github.workspace }}/deps/lib/arm64-v8a"
         run: |
           set -euo pipefail
-          echo "==> go test -c (root)"
           go test -c -o /dev/null .
-          echo "==> go test -c (backend/android)"
-          ( cd backend/android && go test -c -o /dev/null . )
-          echo "==> go test -c (examples/showcase_android)"
           ( cd examples/showcase_android && go test -c -o /dev/null . )
 
       - name: Vet Android packages
@@ -251,10 +202,7 @@ jobs:
           GOOS: android
           GOARCH: arm64
           CC: ${{ steps.ndk.outputs.cc }}
-        run: |
-          set -euo pipefail
-          go vet ./...
-          ( cd backend/android && go vet ./... )
+        run: go vet ./...
 
   test-macos:
     runs-on: macos-latest
@@ -269,9 +217,6 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
-            backend/ebitengine/go.sum
-            backend/gpu/go.sum
-            backend/sdl2/go.sum
             examples/demo/go.sum
             examples/demo_gpu/go.sum
             examples/demo_sdl2/go.sum
@@ -280,21 +225,18 @@ jobs:
       - name: Install native dependencies
         run: brew install sdl2 pango pkg-config
 
-      - name: Test root packages
+      - name: Test root module
         env:
           CGO_ENABLED: "1"
         run: go test ./...
 
-      - name: Build macOS backend modules and examples
+      - name: Build examples
         env:
           CGO_ENABLED: "1"
         run: |
           set -euo pipefail
 
           modules=(
-            "backend/ebitengine"
-            "backend/gpu"
-            "backend/sdl2"
             "examples/demo"
             "examples/demo_gpu"
             "examples/demo_sdl2"
@@ -303,8 +245,5 @@ jobs:
 
           for module in "${modules[@]}"; do
             echo "==> go build ./... ($module)"
-            (
-              cd "$module"
-              go build ./...
-            )
+            ( cd "$module" && go build ./... )
           done

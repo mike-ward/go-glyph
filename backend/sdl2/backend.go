@@ -1,3 +1,5 @@
+//go:build (linux || darwin || windows) && !ios && !android
+
 // Package sdl2 provides an SDL2 DrawBackend for the glyph
 // text rendering library.
 package sdl2

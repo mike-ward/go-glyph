@@ -1,4 +1,4 @@
-//go:build !darwin
+//go:build (linux || windows) && !android
 
 package sdl2
 
