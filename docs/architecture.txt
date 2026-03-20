@@ -1,0 +1,72 @@
+                            GO-GLYPH ARCHITECTURE
+═════════════════════════════════════════════════════════════════════════
+
+                        ┌───────────────────────┐
+                        │   Application Code    │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                      TextSystem  (glyph.go)                       │
+│   DrawText · LayoutText · TextWidth · TextHeight · Commit         │
+└───────┬───────────┬───────────────┬───────────────┬───────────────┘
+        │           │               │               │
+        ▼           ▼               ▼               ▼
+┌───────────┐ ┌───────────┐ ┌─────────────┐ ┌─────────────┐
+│  Context  │ │ Renderer  │ │ Layout Cache│ │ UndoManager │
+│           │ │           │ │    (LRU)    │ │             │
+│ Pango/FT2 │ │  Glyph    │ │             │ │  undo/redo  │
+│ shaping   │ │  atlas +  │ │  map[hash]  │ │  coalescing │
+│ font load │ │  cache    │ │  *cached    │ │             │
+└─────┬─────┘ └─────┬─────┘ └─────────────┘ └─────────────┘
+      │             │
+      │    ┌────────┘
+      │    │
+      ▼    ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                     DrawBackend  (interface)                      │
+│   NewTexture · UpdateTexture · DeleteTexture · DrawTexturedQuad   │
+│   DrawFilledRect · DrawTexturedQuadTransformed · DPIScale         │
+└───┬───────┬───────────┬───────────┬───────────┬───────────┬───────┘
+    │       │           │           │           │           │
+    ▼       ▼           ▼           ▼           ▼           ▼
+┌────────┐┌────────┐┌────────┐┌──────────┐┌──────────┐┌────────┐
+│Ebiten- ││  SDL2  ││  GPU   ││   iOS    ││ Android  ││  Web   │
+│engine  ││        ││        ││          ││          ││        │
+│        ││ CPU +  ││ Metal  ││  Metal   ││  GLES    ││ Canvas │
+│        ││ Metal  ││ OpenGL ││  batch   ││  batch   ││  API   │
+└────────┘└────────┘└────────┘└──────────┘└──────────┘└────────┘
+
+═════════════════════════════════════════════════════════════════════════
+
+ CONFIGURATION TYPES                   PLATFORM SELECTION
+┌───────────────────────┐             ┌─────────────────────────────┐
+│ TextConfig            │             │ Build Constraints:          │
+│ ├─ TextStyle          │             │                             │
+│ │  ├─ FontName        │             │  default  → Pango/FT2/cgo   │
+│ │  ├─ Size/Color      │             │  ios      → iOS Metal       │
+│ │  ├─ Typeface        │             │  android  → Android GLES    │
+│ │  ├─ Underline       │             │  js       → WASM/Canvas     │
+│ │  ├─ StrokeWidth     │             │                             │
+│ │  └─ FontFeatures    │             │ Files swapped:              │
+│ ├─ BlockStyle         │             │  context.go / *_ios.go      │
+│ │  ├─ Align           │             │  renderer.go / *_wasm.go    │
+│ │  ├─ Wrap            │             │  pango.go / *_android.go    │
+│ │  ├─ Width/Indent    │             └─────────────────────────────┘
+│ │  └─ LineSpacing     │
+│ ├─ UseMarkup          │              SUPPORT PACKAGES
+│ ├─ Gradient           │             ┌─────────────────────────────┐
+│ └─ Orientation        │             │ ime/     → IME composition  │
+└───────────────────────┘             │ tools/   → utilities        │
+                                      │ examples/→ demos            │
+                                      └─────────────────────────────┘
+
+ DATA FLOW
+─────────────────────────────────────────────────────────────────────
+ Text + Config                                             Screen
+     │                                                        ▲
+     ▼                                                        │
+ Context ──shape──▶ Layout ──render──▶ Renderer ──draw──▶ Backend
+ (Pango)           (glyphs,           (atlas,             (GPU/CPU
+                    lines,             cache)              textures)
+                    rects)
