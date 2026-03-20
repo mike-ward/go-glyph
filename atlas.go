@@ -159,7 +159,6 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 				if err := atlas.growPage(atlas.CurrentPage, newHeight); err != nil {
 					return CachedGlyph{}, false, 0, err
 				}
-				page = &atlas.Pages[atlas.CurrentPage]
 			} else if len(atlas.Pages) < atlas.MaxPages {
 				newPage, err := newAtlasPage(atlas.Backend, page.Width, 1024)
 				if err != nil {
@@ -167,12 +166,10 @@ func (atlas *GlyphAtlas) InsertBitmap(bmp Bitmap, left, top int) (CachedGlyph, b
 				}
 				atlas.Pages = append(atlas.Pages, newPage)
 				atlas.CurrentPage = len(atlas.Pages) - 1
-				page = &atlas.Pages[atlas.CurrentPage]
 			} else {
 				oldestIdx := atlas.findOldestPage()
 				atlas.resetPage(oldestIdx)
 				atlas.CurrentPage = oldestIdx
-				page = &atlas.Pages[atlas.CurrentPage]
 				resetOccurred = true
 				resetPageIdx = oldestIdx
 			}

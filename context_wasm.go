@@ -3,6 +3,7 @@
 package glyph
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 	"syscall/js"
@@ -105,10 +106,7 @@ func buildCSSFont(style TextStyle) string {
 		size = 16
 	}
 
-	family := parseFamilyFromFontName(style.FontName)
-	if family == "" {
-		family = "sans-serif"
-	}
+	family := cmp.Or(parseFamilyFromFontName(style.FontName), "sans-serif")
 
 	var sb strings.Builder
 

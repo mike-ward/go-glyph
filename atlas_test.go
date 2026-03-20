@@ -463,7 +463,9 @@ func BenchmarkFindBestShelf(b *testing.B) {
 	// Populate shelves.
 	for range 30 {
 		bmp := makeSyntheticBitmap(30, 14+int(b.N%8), 255, 0, 0, 255)
-		atlas.InsertBitmap(bmp, 0, 0)
+		if _, _, _, err := atlas.InsertBitmap(bmp, 0, 0); err != nil {
+			b.Fatal(err)
+		}
 	}
 	page := &atlas.Pages[0]
 	b.ResetTimer()

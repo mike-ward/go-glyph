@@ -47,12 +47,13 @@ func NewUndoManager(maxHistory int) *UndoManager {
 func MutationToUndoOp(result MutationResult, inserted string,
 	cursorBefore, anchorBefore int) UndoOperation {
 
-	opType := OpInsert
-	if len(result.DeletedText) > 0 && len(inserted) > 0 {
+	var opType OperationType
+	switch {
+	case len(result.DeletedText) > 0 && len(inserted) > 0:
 		opType = OpReplace
-	} else if len(inserted) > 0 {
+	case len(inserted) > 0:
 		opType = OpInsert
-	} else {
+	default:
 		opType = OpDelete
 	}
 	return UndoOperation{
@@ -98,12 +99,13 @@ func (um *UndoManager) coalesceOperation(op UndoOperation) {
 	if um.coalescableOp == nil {
 		return
 	}
-	if op.OpType == OpInsert {
+	switch op.OpType {
+	case OpInsert:
 		um.coalescableOp.InsertedText += op.InsertedText
 		um.coalescableOp.RangeEnd = op.RangeEnd
 		um.coalescableOp.CursorAfter = op.CursorAfter
 		um.coalescableOp.AnchorAfter = op.AnchorAfter
-	} else if op.OpType == OpDelete {
+	case OpDelete:
 		um.coalescableOp.DeletedText = op.DeletedText + um.coalescableOp.DeletedText
 		um.coalescableOp.RangeStart = op.RangeStart
 		um.coalescableOp.CursorAfter = op.CursorAfter

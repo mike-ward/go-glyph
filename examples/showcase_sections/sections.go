@@ -471,7 +471,7 @@ func DrawPathText(a *App, x, y, w float32) {
 		return
 	}
 
-	cx := x + minf(w*0.35, 300)
+	cx := x + min(w*0.35, 300)
 	cy := y + 120
 	radius := float32(150)
 
@@ -704,9 +704,3 @@ func DrawTransforms(a *App, x, y, w float32) {
 	}
 }
 
-func minf(a, b float32) float32 {
-	if a < b {
-		return a
-	}
-	return b
-}

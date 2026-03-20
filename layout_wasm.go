@@ -3,6 +3,7 @@
 package glyph
 
 import (
+	"cmp"
 	"strings"
 	"unicode/utf8"
 )
@@ -153,9 +154,7 @@ func parseSizeFromStyle(s TextStyle) float32 {
 // mergeStyles merges run style on top of base style.
 func mergeStyles(base, run TextStyle) TextStyle {
 	result := run
-	if result.FontName == "" {
-		result.FontName = base.FontName
-	}
+	result.FontName = cmp.Or(result.FontName, base.FontName)
 	if result.Size <= 0 {
 		result.Size = base.Size
 	}

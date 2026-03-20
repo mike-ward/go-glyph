@@ -49,7 +49,7 @@ func TestValidatePathValid(t *testing.T) {
 	if err := os.WriteFile(tmp, []byte("dummy"), 0644); err != nil {
 		t.Skip("cannot create temp file")
 	}
-	defer os.Remove(tmp)
+	defer func() { _ = os.Remove(tmp) }()
 
 	err := ValidateFontPath(tmp, "test")
 	if err != nil {
