@@ -1,3 +1,5 @@
+//go:build !ios
+
 #ifndef METAL_DARWIN_H
 #define METAL_DARWIN_H
 

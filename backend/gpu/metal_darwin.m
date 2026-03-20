@@ -1,3 +1,5 @@
+//go:build !ios
+
 #include "metal_darwin.h"
 
 #import <Metal/Metal.h>

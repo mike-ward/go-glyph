@@ -1,3 +1,5 @@
+//go:build linux && !android
+
 #include "gl_linux.h"
 #include "SDL_opengl.h"
 #include <string.h>

@@ -1,3 +1,5 @@
+//go:build linux && !android
+
 #ifndef GL_LINUX_H
 #define GL_LINUX_H
 
