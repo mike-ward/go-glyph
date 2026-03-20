@@ -1,6 +1,6 @@
 # showcase_android
 
-Android showcase app for go-glyph. Compiles the library as a C-shared `.so`
+Android showcase app for Go-Glyph. Compiles the library as a C-shared `.so`
 and loads it from a minimal Kotlin activity via JNI.
 
 ## Prerequisites

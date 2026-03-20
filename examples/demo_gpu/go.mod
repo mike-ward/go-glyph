@@ -8,4 +8,9 @@ require (
 	github.com/veandco/go-sdl2 v0.4.40
 )
 
+replace (
+	github.com/mike-ward/go-glyph => ../..
+	github.com/mike-ward/go-glyph/backend/gpu => ../../backend/gpu
+)
+
 require github.com/rivo/uniseg v0.2.0 // indirect

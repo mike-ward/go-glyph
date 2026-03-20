@@ -8,6 +8,11 @@ require (
 	github.com/mike-ward/go-glyph/backend/ebitengine v1.0.0
 )
 
+replace (
+	github.com/mike-ward/go-glyph => ../..
+	github.com/mike-ward/go-glyph/backend/ebitengine => ../../backend/ebitengine
+)
+
 require (
 	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect

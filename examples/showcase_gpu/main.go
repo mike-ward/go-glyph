@@ -35,7 +35,7 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	win, err := sdl.CreateWindow("go_glyph showcase (Metal)",
+	win, err := sdl.CreateWindow("Go-Glyph showcase (Metal)",
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
 		screenW, screenH,
 		sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|

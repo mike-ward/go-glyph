@@ -1,4 +1,4 @@
-# go-glyph
+# Go-Glyph
 
 High-performance text rendering library for Go, powered by Pango,
 FreeType, and FontConfig. Provides text shaping, layout, rasterization,
@@ -26,7 +26,7 @@ and editing with pluggable rendering backends.
 
 ## Prerequisites
 
-go-glyph uses CGo bindings to the following C libraries:
+Go-Glyph uses CGo bindings to the following C libraries:
 
 - Pango (+ PangoFT2)
 - FreeType2

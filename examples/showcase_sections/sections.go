@@ -16,7 +16,7 @@ func DrawIntro(a *App, x, y, w float32) {
 			{Color: GC(255, 100, 160, 255), Position: 1.0},
 		},
 	}
-	_ = a.TS.DrawText(x, y, "go_glyph", glyph.TextConfig{
+	_ = a.TS.DrawText(x, y, "Go-Glyph", glyph.TextConfig{
 		Style:    glyph.TextStyle{FontName: "Sans Bold 48", Color: TextColor},
 		Gradient: grad,
 	})

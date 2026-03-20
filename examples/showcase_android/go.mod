@@ -8,4 +8,10 @@ require (
 	github.com/mike-ward/go-glyph/examples/showcase_sections v1.0.0
 )
 
+replace (
+	github.com/mike-ward/go-glyph => ../..
+	github.com/mike-ward/go-glyph/backend/android => ../../backend/android
+	github.com/mike-ward/go-glyph/examples/showcase_sections => ../showcase_sections
+)
+
 require github.com/rivo/uniseg v0.2.0 // indirect
