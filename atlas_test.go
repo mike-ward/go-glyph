@@ -307,6 +307,171 @@ func TestAtlasFree(t *testing.T) {
 	}
 }
 
+func TestAtlasPageEvictionPressure(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+	atlas.MaxPages = 2
+	atlas.MaxGlyphDimension = 64
+
+	resetCount := 0
+	for i := range 100 {
+		bmp := makeSyntheticBitmap(60, 30, 255, 255, 255, 255)
+		_, reset, _, err := atlas.InsertBitmap(bmp, 0, 0)
+		if err != nil {
+			t.Fatalf("insert %d failed: %v", i, err)
+		}
+		if reset {
+			resetCount++
+		}
+		// Advance frame counter so eviction can distinguish ages.
+		atlas.FrameCounter++
+	}
+	if resetCount < 2 {
+		t.Errorf("expected multiple page resets under pressure, got %d",
+			resetCount)
+	}
+}
+
+func TestAtlasPageEvictionSelectsOldest(t *testing.T) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer atlas.Free()
+	atlas.MaxPages = 3
+	atlas.MaxGlyphDimension = 64
+
+	// Fill all 3 pages.
+	for range 30 {
+		bmp := makeSyntheticBitmap(60, 30, 255, 255, 255, 255)
+		_, _, _, err := atlas.InsertBitmap(bmp, 0, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		atlas.FrameCounter++
+	}
+
+	if len(atlas.Pages) < 2 {
+		t.Fatalf("expected multiple pages, got %d", len(atlas.Pages))
+	}
+
+	// Set page ages manually.
+	atlas.Pages[0].Age = 100
+	atlas.Pages[1].Age = 50 // oldest
+
+	oldestIdx := atlas.findOldestPage()
+	if oldestIdx != 1 {
+		t.Errorf("findOldestPage() = %d, want 1 (age=50)", oldestIdx)
+	}
+}
+
+func TestNewGlyphAtlasRoundsUp(t *testing.T) {
+	backend := newMockBackend()
+
+	// Non-power-of-two rounds up.
+	atlas, err := NewGlyphAtlas(backend, 1000, 1024)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if atlas.Pages[0].Width != 1024 {
+		t.Errorf("width = %d, want 1024 (rounded up from 1000)",
+			atlas.Pages[0].Width)
+	}
+	atlas.Free()
+
+	// Small dimensions clamped to 64.
+	atlas, err = NewGlyphAtlas(backend, 10, 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if atlas.Pages[0].Width != 64 || atlas.Pages[0].Height != 64 {
+		t.Errorf("dimensions = %dx%d, want 64x64",
+			atlas.Pages[0].Width, atlas.Pages[0].Height)
+	}
+	atlas.Free()
+
+	// Zero dimensions clamped to 64.
+	atlas, err = NewGlyphAtlas(backend, 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if atlas.Pages[0].Width != 64 || atlas.Pages[0].Height != 64 {
+		t.Errorf("dimensions = %dx%d, want 64x64",
+			atlas.Pages[0].Width, atlas.Pages[0].Height)
+	}
+	atlas.Free()
+
+	// Already power-of-two passes through.
+	atlas, err = NewGlyphAtlas(backend, 256, 512)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if atlas.Pages[0].Width != 256 || atlas.Pages[0].Height != 512 {
+		t.Errorf("dimensions = %dx%d, want 256x512",
+			atlas.Pages[0].Width, atlas.Pages[0].Height)
+	}
+	atlas.Free()
+}
+
+func TestNextPowerOfTwo(t *testing.T) {
+	tests := []struct {
+		in, want int
+	}{
+		{0, 1}, {1, 1}, {2, 2}, {3, 4}, {5, 8},
+		{63, 64}, {64, 64}, {65, 128}, {1000, 1024},
+		{1024, 1024}, {1025, 2048},
+	}
+	for _, tt := range tests {
+		got := nextPowerOfTwo(tt.in)
+		if got != tt.want {
+			t.Errorf("nextPowerOfTwo(%d) = %d, want %d",
+				tt.in, got, tt.want)
+		}
+	}
+}
+
+func BenchmarkAtlasInsertBitmap(b *testing.B) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 1024, 1024)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer atlas.Free()
+	bmp := makeSyntheticBitmap(16, 20, 255, 255, 255, 200)
+	b.ResetTimer()
+	for b.Loop() {
+		_, _, _, err := atlas.InsertBitmap(bmp, 3, 11)
+		if err != nil {
+			// Reset when page fills up.
+			atlas.resetPage(atlas.CurrentPage)
+		}
+	}
+}
+
+func BenchmarkFindBestShelf(b *testing.B) {
+	backend := newMockBackend()
+	atlas, err := NewGlyphAtlas(backend, 1024, 1024)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer atlas.Free()
+	// Populate shelves.
+	for range 30 {
+		bmp := makeSyntheticBitmap(30, 14+int(b.N%8), 255, 0, 0, 255)
+		atlas.InsertBitmap(bmp, 0, 0)
+	}
+	page := &atlas.Pages[0]
+	b.ResetTimer()
+	for b.Loop() {
+		page.findBestShelf(18, 16)
+	}
+}
+
 func TestAtlasCopyBitmapData(t *testing.T) {
 	backend := newMockBackend()
 	atlas, err := NewGlyphAtlas(backend, 64, 64)

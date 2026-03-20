@@ -27,6 +27,8 @@ import (
 )
 
 // Context holds Core Text state for text shaping on iOS.
+//
+// Not safe for concurrent use.
 type Context struct {
 	scaleFactor float32
 	scaleInv    float32

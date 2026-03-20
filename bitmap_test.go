@@ -1,5 +1,3 @@
-//go:build !js && !ios && !android
-
 package glyph
 
 import (
@@ -175,6 +173,66 @@ func TestGetPixelRGBAPremulEmptyImage(t *testing.T) {
 	r, g, b, a := getPixelRGBAPremul(nil, 0, 0, 0, 0)
 	if r != 0 || g != 0 || b != 0 || a != 0 {
 		t.Error("expected zero for empty image")
+	}
+}
+
+func TestCheckAllocationSizeOverflow(t *testing.T) {
+	// MaxInt32-scale dimensions should trigger overflow.
+	_, err := checkAllocationSize(math.MaxInt32, 2, 4)
+	if err == nil {
+		t.Error("expected overflow error for MaxInt32 * 2 * 4")
+	}
+}
+
+func TestCheckAllocationSizeExactLimit(t *testing.T) {
+	// Exactly 1GB should pass (1024*1024*256*4 = 1GB).
+	size, err := checkAllocationSize(1024, 1024*256, 4)
+	if err != nil {
+		t.Fatalf("expected 1GB allocation to succeed: %v", err)
+	}
+	if size != 1024*1024*256*4 {
+		t.Errorf("size = %d, want %d", size, 1024*1024*256*4)
+	}
+}
+
+func TestScaleBitmapBicubicTransparent(t *testing.T) {
+	// All-zero alpha source.
+	src := make([]byte, 4*4*4)
+	dst := ScaleBitmapBicubic(src, 4, 4, 2, 2)
+	if dst == nil {
+		t.Fatal("nil result for transparent source")
+	}
+	for i := 0; i < len(dst); i += 4 {
+		if dst[i+3] != 0 {
+			t.Errorf("pixel %d: A=%d, want 0", i/4, dst[i+3])
+			break
+		}
+	}
+}
+
+func TestScaleBitmapBicubicOverflowDimensions(t *testing.T) {
+	src := []byte{255, 255, 255, 255}
+	// Request dimensions that overflow int32.
+	dst := ScaleBitmapBicubic(src, 1, 1, math.MaxInt32, 2)
+	if dst != nil {
+		t.Error("expected nil for overflow dimensions")
+	}
+}
+
+func BenchmarkScaleBitmapBicubic(b *testing.B) {
+	src := make([]byte, 32*32*4)
+	for i := range src {
+		src[i] = byte(i % 256)
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		ScaleBitmapBicubic(src, 32, 32, 64, 64)
+	}
+}
+
+func BenchmarkCubicHermite(b *testing.B) {
+	for b.Loop() {
+		cubicHermite(10, 20, 30, 40, 0.5)
 	}
 }
 

@@ -16,7 +16,9 @@ import (
 
 // Renderer rasterizes glyphs, manages the glyph cache and atlas,
 // and emits draw calls through the DrawBackend interface.
-// Not safe for concurrent use.
+//
+// Not safe for concurrent use. All methods must be called from a
+// single goroutine (typically the render/GL thread).
 type Renderer struct {
 	backend         DrawBackend
 	atlas           *GlyphAtlas

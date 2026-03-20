@@ -118,28 +118,25 @@ func TestScrollConcurrency(t *testing.T) {
 	winH = 500
 
 	var wg sync.WaitGroup
-	wg.Add(2)
 
 	// Simulate UI thread scrolling.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 0; i < 1000; i++ {
 			mu.Lock()
 			scrollY += 1
 			clampScroll()
 			mu.Unlock()
 		}
-	}()
+	})
 
 	// Simulate GL thread reading.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 0; i < 1000; i++ {
 			mu.Lock()
 			_ = scrollY
 			mu.Unlock()
 		}
-	}()
+	})
 
 	wg.Wait()
 
@@ -157,29 +154,26 @@ func TestScrollAndClampConcurrency(t *testing.T) {
 	winH = 80
 
 	var wg sync.WaitGroup
-	wg.Add(2)
 
 	// Writer: scroll up repeatedly.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 0; i < 500; i++ {
 			mu.Lock()
 			scrollY += 5
 			clampScroll()
 			mu.Unlock()
 		}
-	}()
+	})
 
 	// Writer: scroll down repeatedly.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for i := 0; i < 500; i++ {
 			mu.Lock()
 			scrollY -= 5
 			clampScroll()
 			mu.Unlock()
 		}
-	}()
+	})
 
 	wg.Wait()
 

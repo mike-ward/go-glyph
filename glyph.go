@@ -13,6 +13,9 @@ type cachedLayout struct {
 
 // TextSystem is the main entry point for text rendering. It owns
 // the Context, Renderer, and a layout cache.
+//
+// Not safe for concurrent use. Callers must serialize access
+// externally if shared across goroutines.
 type TextSystem struct {
 	ctx             *Context
 	renderer        *Renderer

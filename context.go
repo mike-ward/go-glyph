@@ -22,6 +22,8 @@ import (
 
 // Context holds the Pango and FreeType state needed for text
 // shaping. Keep alive for application duration.
+//
+// Not safe for concurrent use.
 type Context struct {
 	ftLib       FTLibrary
 	fontMap     PangoFontMapW

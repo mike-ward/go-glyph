@@ -9,6 +9,8 @@ import (
 )
 
 // Context holds a Canvas2D context for text measurement in WASM.
+//
+// Not safe for concurrent use.
 type Context struct {
 	canvas      js.Value // OffscreenCanvas for measurement.
 	ctx2d       js.Value // CanvasRenderingContext2D.

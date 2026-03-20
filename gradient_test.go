@@ -112,6 +112,28 @@ func TestGradientColorAtAfterLastStop(t *testing.T) {
 	}
 }
 
+func TestGradientColorAtNegativeT(t *testing.T) {
+	stops := []GradientStop{
+		{Color: Color{100, 0, 0, 255}, Position: 0.0},
+		{Color: Color{200, 0, 0, 255}, Position: 1.0},
+	}
+	c := GradientColorAt(stops, -5.0)
+	if c.R != 100 {
+		t.Errorf("negative t: R=%d, want 100", c.R)
+	}
+}
+
+func TestGradientColorAtLargeT(t *testing.T) {
+	stops := []GradientStop{
+		{Color: Color{100, 0, 0, 255}, Position: 0.0},
+		{Color: Color{200, 0, 0, 255}, Position: 1.0},
+	}
+	c := GradientColorAt(stops, 100.0)
+	if c.R != 200 {
+		t.Errorf("large t: R=%d, want 200", c.R)
+	}
+}
+
 func TestGradientColorAtCoincidentPositions(t *testing.T) {
 	stops := []GradientStop{
 		{Color: Color{255, 0, 0, 255}, Position: 0.5},

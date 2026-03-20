@@ -17,6 +17,8 @@ import (
 )
 
 // Context holds FreeType state for text shaping on Android.
+//
+// Not safe for concurrent use.
 type Context struct {
 	ftLib         C.FT_Library
 	scaleFactor   float32

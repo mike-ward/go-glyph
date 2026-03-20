@@ -26,6 +26,12 @@
 //   - [github.com/mike-ward/go-glyph/backend/ebitengine]: Ebitengine integration.
 //   - [github.com/mike-ward/go-glyph/backend/gpu]: raw OpenGL 3.3 via SDL2.
 //
+// # Thread Safety
+//
+// [Context], [Renderer], [TextSystem], and [GlyphAtlas] are not safe
+// for concurrent use. In a typical application, call all glyph
+// methods from the main/render goroutine.
+//
 // # Sub-packages
 //
 //   - [github.com/mike-ward/go-glyph/accessibility]: screen-reader tree management.

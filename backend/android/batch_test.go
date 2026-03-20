@@ -171,7 +171,7 @@ func BenchmarkBatchAppend6(b *testing.B) {
 	var bt batch
 	v := Vertex{}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		bt.append6(1, v, v, v, v)
 		if len(bt.verts) > 60000 {
 			bt.reset()

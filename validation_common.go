@@ -1,22 +1,24 @@
-//go:build ios
-
 package glyph
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"unicode/utf8"
 )
 
 const (
-	MaxTextLength       = 10240
+	// MaxTextLength is the maximum text input length (10KB) for
+	// DoS prevention.
+	MaxTextLength = 10240
+	// MaxTextureDimension is the maximum texture size in pixels.
 	MaxTextureDimension = 16384
-	MinFontSize         = float32(0.1)
-	MaxFontSize         = float32(500.0)
+	// MinFontSize is the minimum font size in points.
+	MinFontSize = float32(0.1)
+	// MaxFontSize is the maximum font size in points.
+	MaxFontSize = float32(500.0)
 )
 
+// ValidateTextInput validates text for UTF-8, non-empty, and length.
 func ValidateTextInput(text string, maxLen int, location string) error {
 	if len(text) == 0 {
 		return fmt.Errorf("empty string not allowed at %s", location)
@@ -34,35 +36,17 @@ func ValidateTextInput(text string, maxLen int, location string) error {
 	return nil
 }
 
-func ValidateFontPath(path string, location string) error {
-	if len(path) == 0 {
-		return fmt.Errorf("empty font path not allowed at %s",
-			location)
-	}
-	for part := range strings.SplitSeq(filepath.ToSlash(path), "/") {
-		if part == ".." {
-			return fmt.Errorf(
-				"path traversal (..) not allowed in font path at %s",
-				location)
-		}
-	}
-	cleaned := filepath.Clean(path)
-	if _, err := os.Stat(cleaned); err != nil {
-		return fmt.Errorf("font file not accessible: %q at %s: %w",
-			path, location, err)
-	}
-	return nil
-}
-
-func ValidateSize(size, min, max float32,
+// ValidateSize validates a numeric size against min/max bounds.
+func ValidateSize(size, minVal, maxVal float32,
 	name, location string) error {
-	if size < min || size > max {
+	if size < minVal || size > maxVal {
 		return fmt.Errorf("%s %g out of range [%g, %g] at %s",
-			name, size, min, max, location)
+			name, size, minVal, maxVal, location)
 	}
 	return nil
 }
 
+// ValidateDimension validates an integer dimension (width/height).
 func ValidateDimension(dim int, name, location string) error {
 	if dim <= 0 {
 		return fmt.Errorf("%s must be positive, got %d at %s",
