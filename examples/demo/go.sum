@@ -8,10 +8,6 @@ github.com/hajimehoshi/ebiten/v2 v2.8.8 h1:xyMxOAn52T1tQ+j3vdieZ7auDBOXmvjUprSrx
 github.com/hajimehoshi/ebiten/v2 v2.8.8/go.mod h1:durJ05+OYnio9b8q0sEtOgaNeBEQG7Yr7lRviAciYbs=
 github.com/jezek/xgb v1.1.1 h1:bE/r8ZZtSv7l9gk6nU0mYx51aXrvnyb44892TwSaqS4=
 github.com/jezek/xgb v1.1.1/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
-github.com/mike-ward/go-glyph v1.4.1 h1:BuV4H69/z+T4F8a8iC2HUec0YP3l1bbpVEruOrYnFJg=
-github.com/mike-ward/go-glyph v1.4.1/go.mod h1:VfDN4On7weOcfvHX8AxPxeRqPhyDPGkE+jp0OIxEYS0=
-github.com/mike-ward/go-glyph/backend/ebitengine v1.0.0 h1:Gzp8QdHVglEoqVUYfNxFbVyQqE3CggXx43b2KyRZZ+M=
-github.com/mike-ward/go-glyph/backend/ebitengine v1.0.0/go.mod h1:ucfTJ6ZREBFhQUlIcVvtPesEisEYPLiheJrR8S6v3po=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 golang.org/x/image v0.20.0 h1:7cVCUjQwfL18gyBJOmYvptfSHS8Fb3YUDtfLIZ7Nbpw=

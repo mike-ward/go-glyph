@@ -3,8 +3,10 @@ module github.com/mike-ward/go-glyph
 go 1.26
 
 require (
+	github.com/hajimehoshi/ebiten/v2 v2.8.8
 	github.com/princjef/gomarkdoc v1.1.0
 	github.com/rivo/uniseg v0.2.0
+	github.com/veandco/go-sdl2 v0.4.40
 	golang.org/x/pkgsite v0.0.0-20260306132053-fd3717b20fe8
 )
 
@@ -12,6 +14,9 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
+	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325 // indirect
+	github.com/ebitengine/hideconsole v1.0.0 // indirect
+	github.com/ebitengine/purego v0.8.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/color v1.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -24,6 +29,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
+	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect

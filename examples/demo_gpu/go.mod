@@ -4,13 +4,9 @@ go 1.26
 
 require (
 	github.com/mike-ward/go-glyph v1.4.1
-	github.com/mike-ward/go-glyph/backend/gpu v1.0.0
 	github.com/veandco/go-sdl2 v0.4.40
 )
 
-replace (
-	github.com/mike-ward/go-glyph => ../..
-	github.com/mike-ward/go-glyph/backend/gpu => ../../backend/gpu
-)
+replace github.com/mike-ward/go-glyph => ../..
 
 require github.com/rivo/uniseg v0.2.0 // indirect
