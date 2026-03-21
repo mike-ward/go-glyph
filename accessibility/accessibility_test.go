@@ -12,7 +12,7 @@ func TestEmojiNames(t *testing.T) {
 		{0x2764, "red heart"},
 		{0x1F525, "fire"},
 		{0x1F680, "rocket"},
-		{'a', ""},  // Not emoji.
+		{'a', ""},    // Not emoji.
 		{0x0041, ""}, // 'A'.
 	}
 	for _, tc := range tests {

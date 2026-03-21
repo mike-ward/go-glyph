@@ -5,9 +5,9 @@ package gpu
 
 // Vertex matches the MSL vertex layout (20 bytes).
 type Vertex struct {
-	PosX, PosY float32   // 8 bytes
-	R, G, B, A uint8     // 4 bytes (packed RGBA)
-	TexU, TexV float32   // 8 bytes
+	PosX, PosY float32 // 8 bytes
+	R, G, B, A uint8   // 4 bytes (packed RGBA)
+	TexU, TexV float32 // 8 bytes
 }
 
 // drawCmd represents a batched draw call.

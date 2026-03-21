@@ -220,7 +220,7 @@ func TestCombineDeadKeyAllAccents(t *testing.T) {
 		dead, base rune
 		want       rune
 	}{
-		{'`', 'a', 0x00E0}, // à
+		{'`', 'a', 0x00E0},  // à
 		{'\'', 'e', 0x00E9}, // é
 		{'^', 'i', 0x00EE},  // î
 		{'~', 'n', 0x00F1},  // ñ

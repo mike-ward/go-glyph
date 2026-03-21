@@ -22,7 +22,7 @@ const (
 type Notification int
 
 const (
-	NotifyValueChanged        Notification = iota
+	NotifyValueChanged Notification = iota
 	NotifySelectedTextChanged
 )
 

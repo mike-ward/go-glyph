@@ -317,9 +317,9 @@ func computeLines(layout PangoLayoutW, scaleFactor float32) []Line {
 			C.pango_layout_iter_get_line_extents(lineIter.ptr, nil, &rect)
 
 			lines = append(lines, Line{
-				StartIndex:       int(linePtr.start_index),
-				Length:           int(linePtr.length),
-				Rect:             Rect{
+				StartIndex: int(linePtr.start_index),
+				Length:     int(linePtr.length),
+				Rect: Rect{
 					X:      float32(rect.x) * pixelScale,
 					Y:      float32(rect.y) * pixelScale,
 					Width:  float32(rect.width) * pixelScale,

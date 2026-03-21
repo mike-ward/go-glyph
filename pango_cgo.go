@@ -19,12 +19,12 @@ import "C"
 
 // FreeType pixel modes.
 const (
-	FTPixelModeNone  = C.FT_PIXEL_MODE_NONE
-	FTPixelModeMono  = C.FT_PIXEL_MODE_MONO
-	FTPixelModeGray  = C.FT_PIXEL_MODE_GRAY
-	FTPixelModeLCD   = C.FT_PIXEL_MODE_LCD
-	FTPixelModeBGRA  = C.FT_PIXEL_MODE_BGRA
-	FTPixelModeLCDV  = C.FT_PIXEL_MODE_LCD_V
+	FTPixelModeNone = C.FT_PIXEL_MODE_NONE
+	FTPixelModeMono = C.FT_PIXEL_MODE_MONO
+	FTPixelModeGray = C.FT_PIXEL_MODE_GRAY
+	FTPixelModeLCD  = C.FT_PIXEL_MODE_LCD
+	FTPixelModeBGRA = C.FT_PIXEL_MODE_BGRA
+	FTPixelModeLCDV = C.FT_PIXEL_MODE_LCD_V
 )
 
 // FreeType face flags.

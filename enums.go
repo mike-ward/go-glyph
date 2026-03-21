@@ -49,7 +49,7 @@ const (
 type CompositionPhase int
 
 const (
-	CompositionNone      CompositionPhase = iota
+	CompositionNone CompositionPhase = iota
 	CompositionStarted
 	CompositionUpdating
 	CompositionCommitted

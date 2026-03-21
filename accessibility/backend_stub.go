@@ -5,11 +5,11 @@ package accessibility
 // override newBackend and newAnnouncerBackend via build tags.
 type stubBackend struct{}
 
-func (stubBackend) UpdateTree(map[int]Node, int)                   {}
-func (stubBackend) SetFocus(int)                                   {}
-func (stubBackend) PostNotification(int, Notification)             {}
-func (stubBackend) UpdateTextField(int, string, Range, int)        {}
-func (stubBackend) Flush()                                         {}
+func (stubBackend) UpdateTree(map[int]Node, int)            {}
+func (stubBackend) SetFocus(int)                            {}
+func (stubBackend) PostNotification(int, Notification)      {}
+func (stubBackend) UpdateTextField(int, string, Range, int) {}
+func (stubBackend) Flush()                                  {}
 
 type stubAnnouncerBackend struct{}
 

@@ -101,9 +101,9 @@ import (
 
 // ftFont wraps an FT_Face + hb_font_t with a Go-friendly interface.
 type ftFont struct {
-	face   C.FT_Face
-	hb     *C.hb_font_t
-	ftLib  C.FT_Library
+	face  C.FT_Face
+	hb    *C.hb_font_t
+	ftLib C.FT_Library
 }
 
 func resolveFTFontParams(style TextStyle, scaleFactor float32) (

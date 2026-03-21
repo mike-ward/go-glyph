@@ -53,9 +53,9 @@ func (s *FTStroker) Close()                       {}
 type PangoFontMapW struct{}
 
 func NewPangoFT2FontMap() PangoFontMapW              { return PangoFontMapW{} }
-func (m PangoFontMapW) SetResolution(_, _ float64)    {}
-func (m PangoFontMapW) CreateContext() PangoContextW  { return PangoContextW{} }
-func (m *PangoFontMapW) Close()                       {}
+func (m PangoFontMapW) SetResolution(_, _ float64)   {}
+func (m PangoFontMapW) CreateContext() PangoContextW { return PangoContextW{} }
+func (m *PangoFontMapW) Close()                      {}
 
 // PangoContextW is a no-op stub.
 type PangoContextW struct{}

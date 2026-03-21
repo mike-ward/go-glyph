@@ -345,4 +345,3 @@ func (r *Renderer) computeDrawOrigin(targetX, targetY float32) (drawOriginX, dra
 	drawOriginY = float32(math.Round(float64(physY)))
 	return
 }
-

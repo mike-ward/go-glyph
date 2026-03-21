@@ -312,4 +312,3 @@ func loadStrokedGlyphCG(atlas *GlyphAtlas, ch string, item Item,
 		ResetPage:     resetPage,
 	}, nil
 }
-

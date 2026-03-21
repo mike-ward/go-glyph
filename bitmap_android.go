@@ -600,4 +600,3 @@ func loadStrokedGlyphFT(atlas *GlyphAtlas, ch string, item Item,
 		ResetPage:     resetPage,
 	}, nil
 }
-

@@ -26,10 +26,10 @@ func (s *FTStroker) Close()                       {}
 // PangoFontMapW is a no-op stub.
 type PangoFontMapW struct{}
 
-func NewPangoFT2FontMap() PangoFontMapW                  { return PangoFontMapW{} }
-func (m PangoFontMapW) SetResolution(_, _ float64)       {}
-func (m PangoFontMapW) CreateContext() PangoContextW      { return PangoContextW{} }
-func (m *PangoFontMapW) Close()                          {}
+func NewPangoFT2FontMap() PangoFontMapW              { return PangoFontMapW{} }
+func (m PangoFontMapW) SetResolution(_, _ float64)   {}
+func (m PangoFontMapW) CreateContext() PangoContextW { return PangoContextW{} }
+func (m *PangoFontMapW) Close()                      {}
 
 // PangoContextW is a no-op stub.
 type PangoContextW struct{}
@@ -44,11 +44,11 @@ func (l *PangoLayoutW) Close() {}
 // PangoFontDescW is a no-op stub.
 type PangoFontDescW struct{}
 
-func (d *PangoFontDescW) Close()                       {}
-func (d PangoFontDescW) SetSize(_ int)                 {}
-func (d PangoFontDescW) SetWeight(_ int)               {}
-func (d PangoFontDescW) SetStyle(_ int)                {}
-func (d PangoFontDescW) SetVariations(_ string)        {}
+func (d *PangoFontDescW) Close()                {}
+func (d PangoFontDescW) SetSize(_ int)          {}
+func (d PangoFontDescW) SetWeight(_ int)        {}
+func (d PangoFontDescW) SetStyle(_ int)         {}
+func (d PangoFontDescW) SetVariations(_ string) {}
 
 // PangoAttrListW is a no-op stub.
 type PangoAttrListW struct{}
@@ -64,9 +64,9 @@ func (it *PangoLayoutIterW) Close() {}
 // PangoTabArrayW is a no-op stub.
 type PangoTabArrayW struct{}
 
-func NewPangoTabArray(_ int) PangoTabArrayW     { return PangoTabArrayW{} }
-func (t PangoTabArrayW) SetTab(_, _ int)        {}
-func (t *PangoTabArrayW) Close()                {}
+func NewPangoTabArray(_ int) PangoTabArrayW { return PangoTabArrayW{} }
+func (t PangoTabArrayW) SetTab(_, _ int)    {}
+func (t *PangoTabArrayW) Close()            {}
 
 // PangoFontW is a no-op stub.
 type PangoFontW struct{}
