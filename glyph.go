@@ -22,7 +22,7 @@ type TextSystem struct {
 	renderer        *Renderer
 	cache           map[uint64]*cachedLayout
 	evictionAge     int64 // Milliseconds. Default 5000.
-	maxCacheEntries int // Max layout cache entries. Default 8192.
+	maxCacheEntries int   // Max layout cache entries. Default 8192.
 }
 
 // NewTextSystem creates a TextSystem with default atlas size (1024x1024).
