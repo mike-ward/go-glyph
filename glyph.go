@@ -2,6 +2,7 @@ package glyph
 
 import (
 	"math"
+	"slices"
 	"time"
 )
 
@@ -21,7 +22,7 @@ type TextSystem struct {
 	renderer        *Renderer
 	cache           map[uint64]*cachedLayout
 	evictionAge     int64 // Milliseconds. Default 5000.
-	maxCacheEntries int   // Max layout cache entries. Default 1024.
+	maxCacheEntries int // Max layout cache entries. Default 8192.
 }
 
 // NewTextSystem creates a TextSystem with default atlas size (1024x1024).
@@ -41,7 +42,7 @@ func NewTextSystem(backend DrawBackend) (*TextSystem, error) {
 		renderer:        renderer,
 		cache:           make(map[uint64]*cachedLayout),
 		evictionAge:     5000,
-		maxCacheEntries: 1024,
+		maxCacheEntries: 8192,
 	}, nil
 }
 
@@ -68,7 +69,7 @@ func NewTextSystemAtlasSize(backend DrawBackend, atlasW, atlasH int) (*TextSyste
 		renderer:        renderer,
 		cache:           make(map[uint64]*cachedLayout),
 		evictionAge:     5000,
-		maxCacheEntries: 1024,
+		maxCacheEntries: 8192,
 	}, nil
 }
 
@@ -263,7 +264,7 @@ func (ts *TextSystem) getOrCreateLayout(text string, cfg TextConfig) (*cachedLay
 	}
 	ts.cache[key] = item
 	if ts.maxCacheEntries > 0 && len(ts.cache) > ts.maxCacheEntries {
-		ts.evictOldestLayout()
+		ts.evictOldestLayouts()
 	}
 	return item, nil
 }
@@ -348,17 +349,31 @@ func (ts *TextSystem) pruneCache() {
 	}
 }
 
-func (ts *TextSystem) evictOldestLayout() {
-	var oldestKey uint64
-	oldestTime := int64(math.MaxInt64)
-	for k, item := range ts.cache {
-		if item.lastAccess < oldestTime {
-			oldestTime = item.lastAccess
-			oldestKey = k
-		}
+// evictOldestLayouts drops the oldest 25% of cache entries in a
+// single pass. One scan finds the cutoff, a second deletes.
+func (ts *TextSystem) evictOldestLayouts() {
+	n := len(ts.cache)
+	if n == 0 {
+		return
 	}
-	if oldestTime < math.MaxInt64 {
-		delete(ts.cache, oldestKey)
+	// Collect access times.
+	times := make([]int64, 0, n)
+	for _, item := range ts.cache {
+		times = append(times, item.lastAccess)
+	}
+	slices.Sort(times)
+
+	// Keep newest 75%.
+	cutIdx := n / 4
+	if cutIdx == 0 {
+		cutIdx = 1
+	}
+	cutoff := times[cutIdx]
+
+	for k, item := range ts.cache {
+		if item.lastAccess <= cutoff {
+			delete(ts.cache, k)
+		}
 	}
 }
 
