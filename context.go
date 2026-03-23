@@ -20,6 +20,16 @@ import (
 	"unsafe"
 )
 
+// fontHeightKey caches the final FontHeight result, keyed by the
+// TextStyle fields that affect the font description. Avoids the
+// full createFontDescription → LoadFont → GetMetrics CGo chain
+// on repeated calls with the same style.
+type fontHeightKey struct {
+	FontName string
+	Typeface Typeface
+	Size     float32
+}
+
 // Context holds the Pango and FreeType state needed for text
 // shaping. Keep alive for application duration.
 //
@@ -31,6 +41,7 @@ type Context struct {
 	scaleFactor float32
 	scaleInv    float32
 	metrics     metricsCache
+	fontHeights map[fontHeightKey]float32
 }
 
 // NewContext initializes FreeType, Pango font map, and Pango context.
@@ -113,6 +124,22 @@ func (ctx *Context) AddFontFile(path string) error {
 // FontHeight returns ascent + descent in logical pixels for the
 // font described by cfg.
 func (ctx *Context) FontHeight(cfg TextConfig) (float32, error) {
+	// Fast path: return cached result when no variation axes are
+	// in play (the common case). This skips the entire
+	// createFontDescription → LoadFont → GetMetrics CGo chain.
+	hasAxes := cfg.Style.Features != nil &&
+		len(cfg.Style.Features.VariationAxes) > 0
+	if !hasAxes {
+		key := fontHeightKey{
+			FontName: cfg.Style.FontName,
+			Typeface: cfg.Style.Typeface,
+			Size:     cfg.Style.Size,
+		}
+		if h, ok := ctx.fontHeights[key]; ok {
+			return h, nil
+		}
+	}
+
 	desc := ctx.createFontDescription(cfg.Style)
 	if desc.ptr == nil {
 		return 0, fmt.Errorf("failed to create font description")
@@ -133,7 +160,11 @@ func (ctx *Context) FontHeight(cfg TextConfig) (float32, error) {
 	cacheKey := uint64(uintptr(unsafe.Pointer(face))) ^ (uint64(sizeUnits) << 32)
 
 	if entry, ok := ctx.metrics.get(cacheKey); ok {
-		return (float32(entry.Ascent+entry.Descent) / float32(PangoScale)) / ctx.scaleFactor, nil
+		h := (float32(entry.Ascent+entry.Descent) / float32(PangoScale)) / ctx.scaleFactor
+		if !hasAxes {
+			ctx.cacheFontHeight(cfg.Style, h)
+		}
+		return h, nil
 	}
 
 	lang := PangoGetDefaultLanguage()
@@ -151,7 +182,22 @@ func (ctx *Context) FontHeight(cfg TextConfig) (float32, error) {
 		Descent: descent,
 	})
 
-	return (float32(ascent+descent) / float32(PangoScale)) / ctx.scaleFactor, nil
+	h := (float32(ascent+descent) / float32(PangoScale)) / ctx.scaleFactor
+	if !hasAxes {
+		ctx.cacheFontHeight(cfg.Style, h)
+	}
+	return h, nil
+}
+
+func (ctx *Context) cacheFontHeight(style TextStyle, h float32) {
+	if ctx.fontHeights == nil {
+		ctx.fontHeights = make(map[fontHeightKey]float32)
+	}
+	ctx.fontHeights[fontHeightKey{
+		FontName: style.FontName,
+		Typeface: style.Typeface,
+		Size:     style.Size,
+	}] = h
 }
 
 // FontMetrics returns detailed metrics (ascender, descender, height,
