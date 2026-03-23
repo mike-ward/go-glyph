@@ -521,6 +521,10 @@ The rendering pipeline per layout:
 4. Fill glyphs (with subpixel positioning, emoji scaling, gradients)
 5. Decorations (underline, strikethrough)
 
+## Wiki Documentation
+
+https://deepwiki.com/mike-ward/go-glyph/8-glossary
+
 ## License
 
 See [LICENSE](LICENSE) for details.
