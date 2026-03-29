@@ -8,6 +8,8 @@ High-performance text rendering library for Go, powered by Pango,
 FreeType, and FontConfig. Provides text shaping, layout, rasterization,
 and editing with pluggable rendering backends.
 
+![screenshot](assets/a.png)
+
 ## Features
 
 - **Text shaping** via Pango - full Unicode, BiDi, complex scripts
@@ -119,6 +121,8 @@ func main() {
 ```
 
 ## Core Concepts
+
+![screenshot](assets/b.png)
 
 ### TextSystem
 
@@ -244,6 +248,8 @@ backend.EndFrame(0.96, 0.96, 0.96, 1.0, logicalW, logicalH)
 ```
 
 ## Text Styling
+
+![screenshot](assets/c.png)
 
 ### Bold, Italic
 
