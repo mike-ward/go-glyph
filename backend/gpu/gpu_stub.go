@@ -1,4 +1,4 @@
-//go:build (!darwin && !linux) || ios || android
+//go:build (!darwin && !linux && !windows) || ios || android
 
 package gpu
 

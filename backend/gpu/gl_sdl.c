@@ -1,6 +1,6 @@
-//go:build linux && !android
+//go:build (linux || windows) && !android
 
-#include "gl_linux.h"
+#include "gl_sdl.h"
 #include "SDL_opengl.h"
 #include <string.h>
 #include <stdio.h>

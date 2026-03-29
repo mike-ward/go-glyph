@@ -29,7 +29,7 @@ func New(renderer *sdl.Renderer, dpiScale float32) *Backend {
 	if dpiScale <= 0 {
 		dpiScale = 1.0
 	}
-	renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
+	_ = renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
 	return &Backend{
 		renderer: renderer,
 		textures: make(map[glyph.TextureID]*sdl.Texture),
@@ -53,7 +53,7 @@ func (b *Backend) NewTexture(width, height int) glyph.TextureID {
 		log.Printf("sdl2: CreateTexture %dx%d: %v", width, height, err)
 		return 0
 	}
-	tex.SetBlendMode(sdl.BLENDMODE_BLEND)
+	_ = tex.SetBlendMode(sdl.BLENDMODE_BLEND)
 	b.textures[id] = tex
 	b.widths[id] = width
 	b.heights[id] = height
@@ -67,13 +67,13 @@ func (b *Backend) UpdateTexture(id glyph.TextureID, data []byte) {
 		return
 	}
 	w := b.widths[id]
-	tex.Update(nil, unsafe.Pointer(&data[0]), w*4)
+	_ = tex.Update(nil, unsafe.Pointer(&data[0]), w*4)
 }
 
 // DeleteTexture releases a texture.
 func (b *Backend) DeleteTexture(id glyph.TextureID) {
 	if tex, ok := b.textures[id]; ok {
-		tex.Destroy()
+		_ = tex.Destroy()
 		delete(b.textures, id)
 		delete(b.widths, id)
 		delete(b.heights, id)
@@ -88,8 +88,8 @@ func (b *Backend) DrawTexturedQuad(
 	if !ok || b.renderer == nil {
 		return
 	}
-	tex.SetColorMod(c.R, c.G, c.B)
-	tex.SetAlphaMod(c.A)
+	_ = tex.SetColorMod(c.R, c.G, c.B)
+	_ = tex.SetAlphaMod(c.A)
 	srcRect := &sdl.Rect{
 		X: int32(src.X), Y: int32(src.Y),
 		W: int32(src.Width), H: int32(src.Height),
@@ -99,7 +99,7 @@ func (b *Backend) DrawTexturedQuad(
 		X: dst.X * s, Y: dst.Y * s,
 		W: dst.Width * s, H: dst.Height * s,
 	}
-	b.renderer.CopyF(tex, srcRect, dstRect)
+	_ = b.renderer.CopyF(tex, srcRect, dstRect)
 }
 
 // DrawFilledRect draws a filled rectangle.
@@ -112,13 +112,13 @@ func (b *Backend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 	if w <= 0 || h <= 0 {
 		return
 	}
-	b.renderer.SetDrawColor(c.R, c.G, c.B, c.A)
+	_ = b.renderer.SetDrawColor(c.R, c.G, c.B, c.A)
 	s := b.dpiScale
 	rect := sdl.FRect{
 		X: dst.X * s, Y: dst.Y * s,
 		W: w * s, H: h * s,
 	}
-	b.renderer.FillRectF(&rect)
+	_ = b.renderer.FillRectF(&rect)
 }
 
 // DrawTexturedQuadTransformed draws with an affine transform.
@@ -170,7 +170,7 @@ func (b *Backend) DrawTexturedQuadTransformed(
 	}
 	indices := []int32{0, 1, 2, 0, 2, 3}
 
-	b.renderer.RenderGeometry(tex, verts, indices)
+	_ = b.renderer.RenderGeometry(tex, verts, indices)
 }
 
 // DPIScale returns the display DPI scale factor.
@@ -180,7 +180,7 @@ func (b *Backend) DPIScale() float32 { return b.dpiScale }
 // Does not destroy the SDL renderer (caller-owned).
 func (b *Backend) Destroy() {
 	for _, tex := range b.textures {
-		tex.Destroy()
+		_ = tex.Destroy()
 	}
 	b.textures = nil
 	b.widths = nil

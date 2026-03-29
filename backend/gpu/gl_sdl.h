@@ -1,7 +1,7 @@
-//go:build linux && !android
+//go:build (linux || windows) && !android
 
-#ifndef GL_LINUX_H
-#define GL_LINUX_H
+#ifndef GL_SDL_H
+#define GL_SDL_H
 
 #include <stdint.h>
 #include <stdlib.h>

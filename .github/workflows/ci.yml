@@ -204,6 +204,33 @@ jobs:
           CC: ${{ steps.ndk.outputs.cc }}
         run: go vet ./...
 
+  test-windows:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Cross-compile for Windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go build .
+
+      - name: Vet Windows packages
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go vet .
+
   test-macos:
     runs-on: macos-latest
 

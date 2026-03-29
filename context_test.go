@@ -1,4 +1,4 @@
-//go:build !js && !ios && !android
+//go:build !js && !ios && !android && !windows
 
 package glyph
 
