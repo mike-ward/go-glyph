@@ -40,6 +40,19 @@ Go-Glyph uses CGo bindings to the following C libraries:
 - GLib
 - SDL2 (for SDL2 and GPU backends)
 
+### Windows (MSYS2)
+
+The root package and Ebitengine backend require no native libraries
+on Windows (`CGO_ENABLED=0`). The SDL2 and GPU backends need SDL2
+via [MSYS2](https://www.msys2.org):
+
+```sh
+pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-pkg-config
+```
+
+Build from an MSYS2 MinGW 64-bit shell, or add the MinGW `bin/`
+directory to `PATH` so `pkg-config` and the SDL2 DLL are found.
+
 ### macOS (Homebrew)
 
 ```sh
@@ -202,7 +215,7 @@ type DrawBackend interface {
 |---------|---------|-------|
 | Ebitengine | `go-glyph/backend/ebitengine` | Pure Go game engine |
 | SDL2 | `go-glyph/backend/sdl2` | SDL2 renderer |
-| GPU | `go-glyph/backend/gpu` | Metal (macOS), OpenGL 3.3 (Linux) |
+| GPU | `go-glyph/backend/gpu` | Metal (macOS), OpenGL 3.3 (Linux/Windows) |
 
 Each backend has its own `go.mod` with framework-specific
 dependencies. Import the one matching the target framework.
