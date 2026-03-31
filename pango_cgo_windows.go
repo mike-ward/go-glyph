@@ -31,6 +31,9 @@ func (m PangoFontMapW) SetResolution(_, _ float64)   {}
 func (m PangoFontMapW) CreateContext() PangoContextW { return PangoContextW{} }
 func (m *PangoFontMapW) Close()                      {}
 
+// PangoFCFontMapConfigChanged is a no-op on Windows.
+func PangoFCFontMapConfigChanged(_ PangoFontMapW) {}
+
 // PangoContextW is a no-op stub.
 type PangoContextW struct{}
 
@@ -44,39 +47,30 @@ func (l *PangoLayoutW) Close() {}
 // PangoFontDescW is a no-op stub.
 type PangoFontDescW struct{}
 
-func (d *PangoFontDescW) Close()                {}
-func (d PangoFontDescW) SetSize(_ int)          {}
-func (d PangoFontDescW) SetWeight(_ int)        {}
-func (d PangoFontDescW) SetStyle(_ int)         {}
-func (d PangoFontDescW) SetVariations(_ string) {}
-
-// PangoAttrListW is a no-op stub.
-type PangoAttrListW struct{}
-
-func NewPangoAttrList() PangoAttrListW { return PangoAttrListW{} }
-func (a *PangoAttrListW) Close()       {}
-
-// PangoLayoutIterW is a no-op stub.
-type PangoLayoutIterW struct{}
-
-func (it *PangoLayoutIterW) Close() {}
-
-// PangoTabArrayW is a no-op stub.
-type PangoTabArrayW struct{}
-
-func NewPangoTabArray(_ int) PangoTabArrayW { return PangoTabArrayW{} }
-func (t PangoTabArrayW) SetTab(_, _ int)    {}
-func (t *PangoTabArrayW) Close()            {}
+func (d *PangoFontDescW) Close()         {}
+func (d PangoFontDescW) SetSize(_ int)   {}
+func (d PangoFontDescW) SetWeight(_ int) {}
+func (d PangoFontDescW) SetStyle(_ int)  {}
 
 // PangoFontW is a no-op stub.
 type PangoFontW struct{}
 
-func (f *PangoFontW) Close() {}
-
 // PangoFontMetricsW is a no-op stub.
 type PangoFontMetricsW struct{}
 
-func (m *PangoFontMetricsW) Close() {}
+// PangoTabArrayW is a no-op stub.
+type PangoTabArrayW struct{}
 
-// getFontFamilyName returns "Unknown" on Windows.
+func NewPangoTabArray(_ int, _ bool) PangoTabArrayW { return PangoTabArrayW{} }
+func (t *PangoTabArrayW) Close()                    {}
+
+// PangoAttrListW is a no-op stub.
+type PangoAttrListW struct{}
+
+func (a *PangoAttrListW) Close() {}
+
+// PangoLayoutIterW is a no-op stub.
+type PangoLayoutIterW struct{}
+
+// getFontFamilyName returns a placeholder on Windows.
 func getFontFamilyName(_ unsafe.Pointer) string { return "Unknown" }

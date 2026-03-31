@@ -2,7 +2,7 @@
 
 package glyph
 
-// runAttributes holds parsed visual properties.
+// runAttributes holds parsed visual properties from a layout run.
 type runAttributes struct {
 	Color            Color
 	BgColor          Color

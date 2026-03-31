@@ -2,10 +2,10 @@
 
 package glyph
 
-// runMetrics holds underline/strikethrough positioning.
+// runMetrics holds font metrics for a single run.
 type runMetrics struct {
-	UndPos      float64
-	UndThick    float64
+	Ascent      float64
+	Descent     float64
 	StrikePos   float64
 	StrikeThick float64
 }

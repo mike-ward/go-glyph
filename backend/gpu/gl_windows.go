@@ -3,8 +3,9 @@
 package gpu
 
 /*
+#cgo pkg-config: sdl2
 #cgo CFLAGS: -D_REENTRANT
-#cgo LDFLAGS: -lSDL2 -lopengl32
+#cgo LDFLAGS: -lopengl32
 #include "gl_sdl.h"
 */
 import "C"

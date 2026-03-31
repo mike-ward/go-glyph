@@ -24,10 +24,16 @@ type Game struct {
 	backend *glyphebi.Backend
 	frame   int
 	scale   float64
+	scrollY float32
 }
 
 func (g *Game) Update() error {
 	g.frame++
+	_, dy := ebiten.Wheel()
+	g.scrollY -= float32(dy) * 30
+	if g.scrollY < 0 {
+		g.scrollY = 0
+	}
 	return nil
 }
 
@@ -37,7 +43,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Background.
 	screen.Fill(bgColor)
 
-	y := float32(20)
+	y := float32(20) - g.scrollY
 	black := gc(0, 0, 0, 255)
 
 	// --- Basic Latin text ---
@@ -100,7 +106,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// --- Right column: emoji + CJK ---
 	rx := float32(450)
-	ry := float32(20)
+	ry := float32(20) - g.scrollY
 
 	g.drawSection(rx, ry, "Emoji")
 	ry += 30
