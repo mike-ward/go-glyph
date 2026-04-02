@@ -231,12 +231,12 @@ jobs:
             mingw-w64-ucrt-x86_64-fontconfig
 
       - name: Set CGo environment
-        shell: bash
+        shell: msys2 {0}
         run: |
           echo "CGO_ENABLED=1" >> "$GITHUB_ENV"
-          echo "CC=C:/msys64/ucrt64/bin/gcc.exe" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_PATH=C:/msys64/ucrt64/lib/pkgconfig" >> "$GITHUB_ENV"
-          echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
+          echo "CC=$(cygpath -w "$(which gcc)")" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=$(cygpath -w "$MSYSTEM_PREFIX/lib/pkgconfig")" >> "$GITHUB_ENV"
+          cygpath -w "$MSYSTEM_PREFIX/bin" >> "$GITHUB_PATH"
 
       - name: Test root module
         run: go test ./...
