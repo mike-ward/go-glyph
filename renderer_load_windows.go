@@ -8,6 +8,7 @@ import "math"
 type LoadGlyphConfig struct {
 	Index        uint32
 	Codepoint    uint32
+	ClusterText  string
 	TargetHeight int
 	SubpixelBin  int
 	Style        TextStyle
@@ -22,15 +23,14 @@ type LoadGlyphResult struct {
 
 // LoadGlyph rasterizes a glyph via GDI and inserts it into the atlas.
 func (atlas *GlyphAtlas) LoadGlyph(cfg LoadGlyphConfig, scaleFactor float32) (LoadGlyphResult, error) {
-	if cfg.Codepoint == 0 {
+	if cfg.ClusterText == "" {
 		return LoadGlyphResult{}, nil
 	}
 
 	gdi := getGDI()
 	gdi.mu.Lock()
 	gdi.selectFont(winFontParams(cfg.Style, scaleFactor))
-	ch := string(rune(cfg.Codepoint))
-	bmp, left, top := gdi.renderGlyphBitmap(ch, cfg.TargetHeight)
+	bmp, left, top := gdi.renderGlyphBitmap(cfg.ClusterText, cfg.TargetHeight)
 	gdi.mu.Unlock()
 
 	if bmp.Width == 0 || bmp.Height == 0 || len(bmp.Data) == 0 {
@@ -54,15 +54,14 @@ func (atlas *GlyphAtlas) LoadGlyph(cfg LoadGlyphConfig, scaleFactor float32) (Lo
 func (atlas *GlyphAtlas) LoadStrokedGlyph(cfg LoadGlyphConfig,
 	physStrokeWidth, scaleFactor float32) (LoadGlyphResult, error) {
 
-	if cfg.Codepoint == 0 {
+	if cfg.ClusterText == "" {
 		return LoadGlyphResult{}, nil
 	}
 
 	gdi := getGDI()
 	gdi.mu.Lock()
 	gdi.selectFont(winFontParams(cfg.Style, scaleFactor))
-	ch := string(rune(cfg.Codepoint))
-	bmp, left, top := gdi.renderGlyphBitmap(ch, cfg.TargetHeight)
+	bmp, left, top := gdi.renderGlyphBitmap(cfg.ClusterText, cfg.TargetHeight)
 	gdi.mu.Unlock()
 
 	if bmp.Width == 0 || bmp.Height == 0 || len(bmp.Data) == 0 {

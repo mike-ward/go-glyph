@@ -7,16 +7,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"unsafe"
 )
 
 // Context holds GDI state for text shaping on Windows.
 //
 // Not safe for concurrent use.
 type Context struct {
-	gdi         *gdiContext
-	scaleFactor float32
-	scaleInv    float32
-	metrics     metricsCache
+	gdi             *gdiContext
+	scaleFactor     float32
+	scaleInv        float32
+	metrics         metricsCache
+	registeredFonts []string
 }
 
 // NewContext creates a Windows text context using GDI.
@@ -38,14 +41,36 @@ func NewContext(scaleFactor float32) (*Context, error) {
 
 // Free releases resources.
 func (ctx *Context) Free() {
+	const frPrivate = 0x10
+	for _, path := range ctx.registeredFonts {
+		if p, err := syscall.UTF16PtrFromString(path); err == nil {
+			procRemoveFontResourceExW.Call(
+				uintptr(unsafe.Pointer(p)), frPrivate, 0)
+		}
+	}
+	ctx.registeredFonts = nil
 	ctx.metrics = metricsCache{}
 }
 
 // ScaleFactor returns the DPI scale factor.
 func (ctx *Context) ScaleFactor() float32 { return ctx.scaleFactor }
 
-// AddFontFile is a stub — GDI discovers system fonts automatically.
-func (ctx *Context) AddFontFile(_ string) error { return nil }
+// AddFontFile registers a font file with GDI for the current process.
+func (ctx *Context) AddFontFile(path string) error {
+	p, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return fmt.Errorf("glyph: invalid font path: %w", err)
+	}
+	const frPrivate = 0x10
+	ret, _, callErr := procAddFontResourceExW.Call(
+		uintptr(unsafe.Pointer(p)), frPrivate, 0)
+	if ret == 0 {
+		return fmt.Errorf(
+			"glyph: AddFontResourceExW failed for %q: %v", path, callErr)
+	}
+	ctx.registeredFonts = append(ctx.registeredFonts, path)
+	return nil
+}
 
 // FontHeight returns ascent + descent in logical pixels.
 func (ctx *Context) FontHeight(cfg TextConfig) (float32, error) {

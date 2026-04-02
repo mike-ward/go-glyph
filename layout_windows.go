@@ -19,7 +19,10 @@ func (ctx *Context) LayoutText(text string, cfg TextConfig) (Layout, error) {
 	}
 
 	if cfg.UseMarkup {
-		runs := parsePangoMarkup(text, cfg.Style)
+		runs, err := parsePangoMarkup(text, cfg.Style)
+		if err != nil {
+			runs = []StyleRun{{Text: text, Style: cfg.Style}}
+		}
 		markupCfg := cfg
 		markupCfg.UseMarkup = false
 		return ctx.LayoutRichText(RichText{Runs: runs}, markupCfg)
@@ -354,7 +357,7 @@ func (ctx *Context) buildLayout(text string, cfg TextConfig,
 
 			allGlyphs = append(allGlyphs, Glyph{
 				Index:     uint32(ch.byteI),
-				Codepoint: uint32([]rune(ch.text)[0]),
+				Codepoint: uint32(ch.byteL),
 				XAdvance:  cw * pixelScale,
 			})
 
@@ -475,7 +478,7 @@ func (ctx *Context) buildVerticalLayout(text string, cfg TextConfig,
 
 		allGlyphs = append(allGlyphs, Glyph{
 			Index:     uint32(cl.byteI),
-			Codepoint: uint32([]rune(cl.text)[0]),
+			Codepoint: uint32(cl.byteL),
 			XOffset:   centerX * pixelScale,
 			XAdvance:  0,
 			YAdvance:  -lineHeight * pixelScale,

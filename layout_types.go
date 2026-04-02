@@ -105,7 +105,7 @@ type Glyph struct {
 	YOffset   float64
 	XAdvance  float64
 	YAdvance  float64
-	Codepoint uint32 // Original Unicode codepoint (may be 0).
+	Codepoint uint32 // Cluster byte length (use with Index as byte offset).
 }
 
 // GlyphPlacement specifies absolute screen position and rotation

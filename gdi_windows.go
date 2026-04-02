@@ -128,6 +128,8 @@ var (
 	procTextOutW              = gdi32.NewProc("TextOutW")
 	procGetCharABCWidthsW     = gdi32.NewProc("GetCharABCWidthsW")
 	procGetGlyphOutlineW      = gdi32.NewProc("GetGlyphOutlineW")
+	procAddFontResourceExW    = gdi32.NewProc("AddFontResourceExW")
+	procRemoveFontResourceExW = gdi32.NewProc("RemoveFontResourceExW")
 	procGetDC                 = user32.NewProc("GetDC")
 	procReleaseDC             = user32.NewProc("ReleaseDC")
 	procRtlZeroMemory         = kernel32.NewProc("RtlZeroMemory")

@@ -4,9 +4,10 @@
 ![License](https://img.shields.io/badge/license-PolyForm%20NC%201.0-blue)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mike-ward/go-glyph)
 
-High-performance text rendering library for Go, powered by Pango,
-FreeType, and FontConfig. Provides text shaping, layout, rasterization,
-and editing with pluggable rendering backends.
+High-performance text rendering library for Go. Uses Pango, FreeType,
+and FontConfig on Linux/macOS; native GDI on Windows; CoreText on iOS.
+Provides text shaping, layout, rasterization, and editing with
+pluggable rendering backends.
 
 ![screenshot](assets/a.png)
 
@@ -524,7 +525,7 @@ cd examples/demo && go run .
 
 ```
 TextSystem
-  +-- Context (Pango + FreeType + FontConfig)
+  +-- Context (platform text engine)
   |     +-- Text shaping and layout computation
   |     +-- Font resolution and metrics
   +-- Renderer
@@ -539,7 +540,7 @@ TextSystem
 The rendering pipeline per layout:
 
 1. Background rectangles
-2. Stroke setup (FreeType stroker)
+2. Stroke setup
 3. Stroke outlines
 4. Fill glyphs (with subpixel positioning, emoji scaling, gradients)
 5. Decorations (underline, strikethrough)

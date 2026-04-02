@@ -83,7 +83,7 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 				continue
 			}
 
-			cg := r.getOrLoadStrokedGlyph(item, g, physW)
+			cg := r.getOrLoadStrokedGlyph(layout.Text, item, g, physW)
 			r.touchPage(cg)
 
 			if cg.Width > 0 && cg.Height > 0 &&
@@ -151,7 +151,7 @@ func (r *Renderer) drawLayoutImpl(layout Layout, x, y float32,
 			}
 
 			bin := r.computeSubpixelBin(cx)
-			cg := r.getOrLoadGlyph(item, g, bin)
+			cg := r.getOrLoadGlyph(layout.Text, item, g, bin)
 			r.touchPage(cg)
 
 			if cg.Width > 0 && cg.Height > 0 &&

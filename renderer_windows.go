@@ -117,7 +117,7 @@ func (r *Renderer) DrawLayoutPlaced(layout Layout, placements []GlyphPlacement) 
 				continue
 			}
 			placement := placements[i]
-			cg := r.getOrLoadStrokedGlyph(item, g, physW)
+			cg := r.getOrLoadStrokedGlyph(layout.Text, item, g, physW)
 			r.touchPage(cg)
 			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				r.emitPlacedQuad(cg, placement, item.StrokeColor,
@@ -147,7 +147,7 @@ func (r *Renderer) DrawLayoutPlaced(layout Layout, placements []GlyphPlacement) 
 			}
 			placement := placements[i]
 			bin := r.computeSubpixelBin(placement.X)
-			cg := r.getOrLoadGlyph(item, g, bin)
+			cg := r.getOrLoadGlyph(layout.Text, item, g, bin)
 			r.touchPage(cg)
 			if cg.Width > 0 && cg.Height > 0 && cg.Page >= 0 && cg.Page < len(r.atlas.Pages) {
 				r.emitPlacedQuad(cg, placement, c,
@@ -162,8 +162,12 @@ func (r *Renderer) Atlas() *GlyphAtlas { return r.atlas }
 
 // --- helper methods ---
 
-func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int) CachedGlyph {
-	key := winGlyphCacheKey(g.Codepoint, int(item.Ascent+item.Descent), bin,
+func (r *Renderer) getOrLoadGlyph(text string, item Item, g Glyph, bin int) CachedGlyph {
+	ch := glyphText(text, g)
+	if ch == "" {
+		return CachedGlyph{}
+	}
+	key := winGlyphCacheKey(ch, int(item.Ascent+item.Descent), bin,
 		winStyleHash(item.Style))
 
 	if cg, ok := r.cache[key]; ok {
@@ -179,6 +183,7 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int) CachedGlyph {
 	cfg := LoadGlyphConfig{
 		Index:        g.Index,
 		Codepoint:    g.Codepoint,
+		ClusterText:  ch,
 		TargetHeight: int(item.Ascent + item.Descent),
 		SubpixelBin:  bin,
 		Style:        item.Style,
@@ -202,8 +207,12 @@ func (r *Renderer) getOrLoadGlyph(item Item, g Glyph, bin int) CachedGlyph {
 	return result.Cached
 }
 
-func (r *Renderer) getOrLoadStrokedGlyph(item Item, g Glyph, physStrokeWidth float32) CachedGlyph {
-	key := winStrokedGlyphCacheKey(g.Codepoint, int(item.Ascent+item.Descent),
+func (r *Renderer) getOrLoadStrokedGlyph(text string, item Item, g Glyph, physStrokeWidth float32) CachedGlyph {
+	ch := glyphText(text, g)
+	if ch == "" {
+		return CachedGlyph{}
+	}
+	key := winStrokedGlyphCacheKey(ch, int(item.Ascent+item.Descent),
 		physStrokeWidth, winStyleHash(item.Style))
 
 	if cg, ok := r.cache[key]; ok {
@@ -218,6 +227,7 @@ func (r *Renderer) getOrLoadStrokedGlyph(item Item, g Glyph, physStrokeWidth flo
 	cfg := LoadGlyphConfig{
 		Index:        g.Index,
 		Codepoint:    g.Codepoint,
+		ClusterText:  ch,
 		TargetHeight: int(item.Ascent + item.Descent),
 		Style:        item.Style,
 	}
@@ -240,10 +250,10 @@ func (r *Renderer) getOrLoadStrokedGlyph(item Item, g Glyph, physStrokeWidth flo
 	return result.Cached
 }
 
-func winStrokedGlyphCacheKey(codepoint uint32, targetH int,
+func winStrokedGlyphCacheKey(clusterText string, targetH int,
 	strokeWidth float32, styleHash uint64) uint64 {
 	h := fnvOffsetBasis
-	h = fnvHashU64(h, uint64(codepoint))
+	h = fnvHashString(h, clusterText)
 	h = fnvHashU64(h, uint64(targetH))
 	h = fnvHashF32(h, strokeWidth)
 	h = fnvHashU64(h, styleHash)
@@ -251,9 +261,9 @@ func winStrokedGlyphCacheKey(codepoint uint32, targetH int,
 	return h
 }
 
-func winGlyphCacheKey(codepoint uint32, targetH, bin int, styleHash uint64) uint64 {
+func winGlyphCacheKey(clusterText string, targetH, bin int, styleHash uint64) uint64 {
 	h := fnvOffsetBasis
-	h = fnvHashU64(h, uint64(codepoint))
+	h = fnvHashString(h, clusterText)
 	h = fnvHashU64(h, uint64(targetH))
 	h = fnvHashU64(h, uint64(bin))
 	h = fnvHashU64(h, styleHash)

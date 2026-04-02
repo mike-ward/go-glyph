@@ -122,7 +122,10 @@ func TestMarkupReplaceFontSize(t *testing.T) {
 
 func TestParsePangoMarkupBasic(t *testing.T) {
 	base := TextStyle{FontName: "Sans 12", Color: Color{0, 0, 0, 255}}
-	runs := parsePangoMarkup("hello <b>bold</b> world", base)
+	runs, err := parsePangoMarkup("hello <b>bold</b> world", base)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(runs) != 3 {
 		t.Fatalf("expected 3 runs, got %d", len(runs))
 	}
@@ -139,7 +142,10 @@ func TestParsePangoMarkupBasic(t *testing.T) {
 
 func TestParsePangoMarkupNested(t *testing.T) {
 	base := TextStyle{FontName: "Sans 12"}
-	runs := parsePangoMarkup("<b><i>bi</i></b>", base)
+	runs, err := parsePangoMarkup("<b><i>bi</i></b>", base)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(runs) != 1 {
 		t.Fatalf("expected 1 run, got %d", len(runs))
 	}
@@ -150,7 +156,10 @@ func TestParsePangoMarkupNested(t *testing.T) {
 
 func TestParsePangoMarkupSpanColor(t *testing.T) {
 	base := TextStyle{FontName: "Sans 12", Color: Color{0, 0, 0, 255}}
-	runs := parsePangoMarkup(`<span foreground="#FF0000">red</span>`, base)
+	runs, err := parsePangoMarkup(`<span foreground="#FF0000">red</span>`, base)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(runs) != 1 {
 		t.Fatalf("expected 1 run, got %d", len(runs))
 	}
@@ -161,8 +170,33 @@ func TestParsePangoMarkupSpanColor(t *testing.T) {
 
 func TestParsePangoMarkupPlainText(t *testing.T) {
 	base := TextStyle{FontName: "Sans 12"}
-	runs := parsePangoMarkup("no markup", base)
+	runs, err := parsePangoMarkup("no markup", base)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(runs) != 1 || runs[0].Text != "no markup" {
 		t.Errorf("plain text: %+v", runs)
+	}
+}
+
+func TestParsePangoMarkupMalformed(t *testing.T) {
+	base := TextStyle{FontName: "Sans 12"}
+
+	// Unclosed tag with content before the error.
+	runs, err := parsePangoMarkup("hello <b>bold", base)
+	if err == nil {
+		t.Error("expected error for unclosed tag")
+	}
+	if len(runs) == 0 {
+		t.Error("expected partial runs before error")
+	}
+
+	// Malformed entity mid-stream.
+	runs, err = parsePangoMarkup("hello <b>bold</b> <invalid&>rest", base)
+	if err == nil {
+		t.Error("expected error for malformed XML")
+	}
+	if len(runs) < 2 {
+		t.Errorf("expected at least 2 partial runs, got %d", len(runs))
 	}
 }

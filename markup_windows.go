@@ -5,12 +5,13 @@ package glyph
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 )
 
 // parsePangoMarkup parses a Pango markup string into StyleRuns.
-func parsePangoMarkup(text string, baseStyle TextStyle) []StyleRun {
+func parsePangoMarkup(text string, baseStyle TextStyle) ([]StyleRun, error) {
 	wrapped := "<root>" + text + "</root>"
 	decoder := xml.NewDecoder(strings.NewReader(wrapped))
 
@@ -20,7 +21,10 @@ func parsePangoMarkup(text string, baseStyle TextStyle) []StyleRun {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
-			break
+			if err == io.EOF {
+				break
+			}
+			return runs, fmt.Errorf("glyph: markup parse error: %w", err)
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
@@ -53,9 +57,9 @@ func parsePangoMarkup(text string, baseStyle TextStyle) []StyleRun {
 	}
 
 	if len(runs) == 0 {
-		return []StyleRun{{Text: text, Style: baseStyle}}
+		return []StyleRun{{Text: text, Style: baseStyle}}, nil
 	}
-	return runs
+	return runs, nil
 }
 
 func markupApplyBold(s TextStyle) TextStyle {

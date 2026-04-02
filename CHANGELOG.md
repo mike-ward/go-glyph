@@ -6,3 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.6.1] - 2026-04-02
+
+### Fixed
+
+- Windows: `AddFontFile` now registers fonts via `AddFontResourceExW`
+  instead of silently succeeding as a no-op
+- Windows: grapheme clusters now render full cluster text instead of
+  only the first rune (fixes emoji sequences and combining marks)
+- Windows: malformed Pango markup returns error and falls back to
+  plain text instead of silently truncating content
+
+### Changed
+
+- README: description and architecture reflect multi-platform backends
+  (GDI on Windows, CoreText on iOS)
