@@ -205,7 +205,7 @@ jobs:
         run: go vet ./...
 
   test-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
@@ -217,19 +217,35 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
-      - name: Cross-compile for Windows
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: "0"
-        run: go build .
+      - name: Install MSYS2 and dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkg-config
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-pango
+            mingw-w64-ucrt-x86_64-fontconfig
+
+      - name: Set CGo environment
+        shell: bash
+        run: |
+          echo "CGO_ENABLED=1" >> "$GITHUB_ENV"
+          echo "CC=C:/msys64/ucrt64/bin/gcc.exe" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=C:/msys64/ucrt64/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
+
+      - name: Test root module
+        run: go test ./...
+
+      - name: Build root package
+        run: go build ./...
 
       - name: Vet Windows packages
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: "0"
-        run: go vet .
+        run: go vet ./...
 
   test-macos:
     runs-on: macos-latest
