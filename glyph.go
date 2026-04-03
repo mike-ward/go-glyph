@@ -262,10 +262,10 @@ func (ts *TextSystem) getOrCreateLayout(text string, cfg TextConfig) (*cachedLay
 		layout:     layout,
 		lastAccess: time.Now().UnixMilli(),
 	}
-	ts.cache[key] = item
-	if ts.maxCacheEntries > 0 && len(ts.cache) > ts.maxCacheEntries {
+	if ts.maxCacheEntries > 0 && len(ts.cache) >= ts.maxCacheEntries {
 		ts.evictOldestLayouts()
 	}
+	ts.cache[key] = item
 	return item, nil
 }
 
@@ -349,30 +349,35 @@ func (ts *TextSystem) pruneCache() {
 	}
 }
 
-// evictOldestLayouts drops the oldest 25% of cache entries in a
-// single pass. One scan finds the cutoff, a second deletes.
+// evictOldestLayouts drops the oldest 25% of cache entries.
+// Collect access times, sort, delete entries at or below the
+// 25th-percentile timestamp, capped at targetDelete to avoid
+// over-deletion when many entries share the cutoff time.
 func (ts *TextSystem) evictOldestLayouts() {
 	n := len(ts.cache)
 	if n == 0 {
 		return
 	}
-	// Collect access times.
 	times := make([]int64, 0, n)
 	for _, item := range ts.cache {
 		times = append(times, item.lastAccess)
 	}
 	slices.Sort(times)
 
-	// Keep newest 75%.
-	cutIdx := n / 4
-	if cutIdx == 0 {
-		cutIdx = 1
+	targetDelete := n / 4
+	if targetDelete == 0 {
+		targetDelete = 1
 	}
-	cutoff := times[cutIdx]
+	cutoff := times[targetDelete-1]
 
+	deleted := 0
 	for k, item := range ts.cache {
+		if deleted >= targetDelete {
+			break
+		}
 		if item.lastAccess <= cutoff {
 			delete(ts.cache, k)
+			deleted++
 		}
 	}
 }

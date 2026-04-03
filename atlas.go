@@ -303,6 +303,9 @@ func (page *AtlasPage) calculateShelfUsedPixels() int64 {
 }
 
 func (atlas *GlyphAtlas) findOldestPage() int {
+	if len(atlas.Pages) == 0 {
+		return 0
+	}
 	oldestIdx := 0
 	oldestAge := atlas.Pages[0].Age
 	for i, p := range atlas.Pages {

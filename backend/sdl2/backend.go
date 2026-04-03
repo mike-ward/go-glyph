@@ -63,7 +63,7 @@ func (b *Backend) NewTexture(width, height int) glyph.TextureID {
 // UpdateTexture uploads RGBA data to an existing texture.
 func (b *Backend) UpdateTexture(id glyph.TextureID, data []byte) {
 	tex, ok := b.textures[id]
-	if !ok {
+	if !ok || len(data) == 0 {
 		return
 	}
 	w := b.widths[id]

@@ -32,6 +32,9 @@ func (m *gpuCtx) newTexture(w, h int) uint64 {
 }
 
 func (m *gpuCtx) updateTexture(id uint64, data []byte, w, h int) {
+	if len(data) == 0 {
+		return
+	}
 	C.glCtxUpdateTex(m.ptr, C.uint64_t(id),
 		unsafe.Pointer(&data[0]), C.int(w), C.int(h))
 }

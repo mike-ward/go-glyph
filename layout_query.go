@@ -1,6 +1,6 @@
 package glyph
 
-import "sort"
+import "slices"
 
 // maxDistance is a sentinel for "no match found" distance comparisons.
 const maxDistance float32 = 1e9
@@ -22,7 +22,7 @@ func (l *Layout) collectPositions(pred func(LogAttr) bool) []int {
 			}
 		}
 	}
-	sort.Ints(positions)
+	slices.Sort(positions)
 	return positions
 }
 
