@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-04-05
+
+### Changed
+
+- Update dependencies: ebiten v2.9.9, uniseg v0.4.7, purego v0.10.0
+
+## [1.6.2] - 2026-04-05
+
+### Fixed
+
+- Correctness and robustness issues from adversarial code review
+
+### Changed
+
+- Windows CI: native CGo job with MSYS2, dynamic path resolution
+
 ## [1.6.1] - 2026-04-02
 
 ### Fixed
