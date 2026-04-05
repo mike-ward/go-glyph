@@ -13,4 +13,4 @@ replace (
 	github.com/mike-ward/go-glyph/examples/showcase_sections => ../showcase_sections
 )
 
-require github.com/rivo/uniseg v0.2.0 // indirect
+require github.com/rivo/uniseg v0.4.7 // indirect
