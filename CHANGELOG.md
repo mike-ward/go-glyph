@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-04-08
+
+### Added
+
+- DirectWrite color emoji support on Windows
+- Claude automation prompts and configuration
+
+### Fixed
+
+- Windows DPI handling in DirectWrite backend
+
+### Changed
+
+- Tidy example module dependencies to match root go.mod
+
 ## [1.6.3] - 2026-04-05
 
 ### Changed
