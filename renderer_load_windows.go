@@ -2,7 +2,10 @@
 
 package glyph
 
-import "math"
+import (
+	"errors"
+	"math"
+)
 
 // LoadGlyphConfig holds parameters for Windows glyph rasterization.
 type LoadGlyphConfig struct {
@@ -22,9 +25,24 @@ type LoadGlyphResult struct {
 }
 
 // LoadGlyph rasterizes a glyph via GDI and inserts it into the atlas.
+// For single-rune emoji clusters the DirectWrite color glyph path is
+// tried first — classic GDI cannot render the COLR table, which is
+// what makes Segoe UI Emoji appear as hollow outlines.
 func (atlas *GlyphAtlas) LoadGlyph(cfg LoadGlyphConfig, scaleFactor float32) (LoadGlyphResult, error) {
 	if cfg.ClusterText == "" {
 		return LoadGlyphResult{}, nil
+	}
+
+	if bmp, left, top, ok := tryLoadColorGlyph(cfg, scaleFactor); ok {
+		cached, resetOccurred, resetPage, err := atlas.InsertBitmap(bmp, left, top)
+		if err != nil {
+			return LoadGlyphResult{}, err
+		}
+		return LoadGlyphResult{
+			Cached:        cached,
+			ResetOccurred: resetOccurred,
+			ResetPage:     resetPage,
+		}, nil
 	}
 
 	gdi := getGDI()
@@ -47,6 +65,50 @@ func (atlas *GlyphAtlas) LoadGlyph(cfg LoadGlyphConfig, scaleFactor float32) (Lo
 		ResetOccurred: resetOccurred,
 		ResetPage:     resetPage,
 	}, nil
+}
+
+// tryLoadColorGlyph attempts to rasterize the cluster via DirectWrite.
+// Returns ok=true only on a successful color-glyph render; any failure
+// mode (missing rasterizer, multi-rune cluster, non-color codepoint,
+// internal DWrite error) returns ok=false so the caller falls through
+// to the GDI path.
+func tryLoadColorGlyph(cfg LoadGlyphConfig, scaleFactor float32) (Bitmap, int, int, bool) {
+	gdi := getGDI()
+	if gdi.dwrite == nil {
+		return Bitmap{}, 0, 0, false
+	}
+
+	runes := []rune(cfg.ClusterText)
+	if len(runes) != 1 {
+		// ZWJ sequences, flags, and other multi-rune clusters require
+		// DWrite shaping to resolve the ligature glyph. Defer to GDI.
+		return Bitmap{}, 0, 0, false
+	}
+	r := runes[0]
+	if !isEmojiRune(r) {
+		return Bitmap{}, 0, 0, false
+	}
+
+	_, size := parseFontDesc(cfg.Style)
+	emSizePx := size * scaleFactor
+	if emSizePx <= 0 {
+		return Bitmap{}, 0, 0, false
+	}
+	if emSizePx > float32(MaxGlyphSize) {
+		emSizePx = float32(MaxGlyphSize)
+	}
+
+	bmp, left, top, err := gdi.dwrite.RenderColorGlyph(emSizePx, r)
+	if err != nil {
+		if errors.Is(err, errNoColorGlyph) {
+			return Bitmap{}, 0, 0, false
+		}
+		return Bitmap{}, 0, 0, false
+	}
+	if bmp.Width <= 0 || bmp.Height <= 0 || len(bmp.Data) == 0 {
+		return Bitmap{}, 0, 0, false
+	}
+	return bmp, left, top, true
 }
 
 // LoadStrokedGlyph rasterizes a glyph via GDI and dilates the alpha channel

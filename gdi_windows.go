@@ -136,6 +136,8 @@ var (
 )
 
 // gdiContext holds a reusable GDI device context for text operations.
+// It also owns the optional DirectWrite rasterizer used for COLR color
+// glyph (emoji) rendering — classic GDI cannot draw color fonts.
 type gdiContext struct {
 	mu         sync.Mutex
 	hdc        uintptr // memory DC
@@ -143,6 +145,7 @@ type gdiContext struct {
 	curFont    uintptr // currently selected HFONT
 	curFontKey fontCacheKey
 	fontCache  map[fontCacheKey]uintptr
+	dwrite     *dwriteRasterizer // nil if DWrite init failed
 }
 
 type fontCacheKey struct {
@@ -168,10 +171,15 @@ func getGDI() *gdiContext {
 			procSetBkMode.Call(memDC, _TRANSPARENT)
 			procSetTextColor.Call(memDC, 0x00FFFFFF) // white
 		}
+		// Best-effort DirectWrite init. A nil rasterizer here just means
+		// color emoji will render hollow via the GDI fallback below —
+		// still a regression-free outcome for monochrome text.
+		dw, _ := newDWriteRasterizer()
 		globalGDI = &gdiContext{
 			hdc:       memDC,
 			screenDC:  screenDC,
 			fontCache: make(map[fontCacheKey]uintptr),
+			dwrite:    dw,
 		}
 	})
 	return globalGDI
@@ -199,6 +207,10 @@ func (g *gdiContext) close() {
 	if g.screenDC != 0 {
 		procReleaseDC.Call(0, g.screenDC)
 		g.screenDC = 0
+	}
+	if g.dwrite != nil {
+		g.dwrite.Close()
+		g.dwrite = nil
 	}
 }
 
