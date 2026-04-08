@@ -41,6 +41,17 @@ func (a *app) render() {
 }
 
 func main() {
+	// Ensure per-monitor DPI awareness so SDL reports physical
+	// pixels and Windows DWM does not magnify the window.
+	// DPI_SCALING makes SDL auto-scale window dimensions by the
+	// display DPI so the window keeps its nominal physical size
+	// and GL_GetDrawableSize reports the scaled backbuffer.
+	// Requires SDL 2.24+; older SDL silently ignores DPI_SCALING
+	// and fonts will render at 1x (tiny) on high-DPI displays.
+	glyph.SetDPIAwareWindows()
+	sdl.SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2")
+	sdl.SetHint("SDL_WINDOWS_DPI_SCALING", "1")
+
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
 		log.Fatal(err)
 	}
