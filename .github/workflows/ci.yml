@@ -267,7 +267,7 @@ jobs:
             examples/showcase_gpu/go.sum
 
       - name: Install native dependencies
-        run: brew install sdl2 pango pkg-config
+        run: brew install sdl2 pango harfbuzz pkg-config
 
       - name: Test root module
         env:
