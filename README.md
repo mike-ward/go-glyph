@@ -1,7 +1,7 @@
 # Go-Glyph
 
 ![Go version](https://img.shields.io/badge/go-1.26%2B-blue)
-![License](https://img.shields.io/badge/license-PolyForm%20NC%201.0-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mike-ward/go-glyph)
 
 High-performance text rendering library for Go. Uses Pango, FreeType,
