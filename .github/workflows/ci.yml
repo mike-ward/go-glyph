@@ -267,7 +267,10 @@ jobs:
             examples/showcase_gpu/go.sum
 
       - name: Install native dependencies
-        run: brew install sdl2 pango harfbuzz pkg-config
+        run: brew install sdl2 pango pkg-config
+
+      - name: Clear Go build cache
+        run: go clean -cache
 
       - name: Test root module
         env:
