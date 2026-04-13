@@ -156,9 +156,9 @@ func dilateGlyphBitmap(src Bitmap, left, top, radius int) (Bitmap, int, int) {
 	newData := make([]byte, newW*newH*4)
 	r2 := radius * radius
 
-	for y := 0; y < newH; y++ {
+	for y := range newH {
 		sy := y - radius
-		for x := 0; x < newW; x++ {
+		for x := range newW {
 			sx := x - radius
 			var maxA byte
 			for dy := -radius; dy <= radius; dy++ {

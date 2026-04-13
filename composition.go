@@ -98,23 +98,14 @@ func (cs *CompositionState) CompositionBounds(layout Layout) (Rect, bool) {
 	if len(rects) == 0 {
 		return Rect{}, false
 	}
-	minX := float32(1e9)
-	minY := float32(1e9)
-	maxX := float32(-1e9)
-	maxY := float32(-1e9)
-	for _, r := range rects {
-		if r.X < minX {
-			minX = r.X
-		}
-		if r.Y < minY {
-			minY = r.Y
-		}
-		if r.X+r.Width > maxX {
-			maxX = r.X + r.Width
-		}
-		if r.Y+r.Height > maxY {
-			maxY = r.Y + r.Height
-		}
+	minX, minY := rects[0].X, rects[0].Y
+	maxX := rects[0].X + rects[0].Width
+	maxY := rects[0].Y + rects[0].Height
+	for _, r := range rects[1:] {
+		minX = min(minX, r.X)
+		minY = min(minY, r.Y)
+		maxX = max(maxX, r.X+r.Width)
+		maxY = max(maxY, r.Y+r.Height)
 	}
 	return Rect{
 		X:      minX,

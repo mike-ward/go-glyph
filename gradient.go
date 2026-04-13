@@ -25,7 +25,7 @@ func GradientColorAt(stops []GradientStop, t float32) Color {
 	if t >= last.Position {
 		return last.Color
 	}
-	for i := 0; i < len(stops)-1; i++ {
+	for i := range len(stops) - 1 {
 		if t >= stops[i].Position && t <= stops[i+1].Position {
 			span := stops[i+1].Position - stops[i].Position
 			if span <= 0 {
