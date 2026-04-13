@@ -198,12 +198,6 @@ func CutSelection(text string, cursor, anchor int) (string, MutationResult) {
 	return cutText, result
 }
 
-func clampIndex(val, max int) int {
-	if val < 0 {
-		return 0
-	}
-	if val > max {
-		return max
-	}
-	return val
+func clampIndex(val, hi int) int {
+	return max(0, min(val, hi))
 }

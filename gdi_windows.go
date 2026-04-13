@@ -445,13 +445,7 @@ func (g *gdiContext) renderGlyphBitmap(ch string, heightPx int) (Bitmap, int, in
 		gg := src[i+1]
 		r := src[i+2]
 
-		a := r
-		if gg > a {
-			a = gg
-		}
-		if b > a {
-			a = b
-		}
+		a := max(r, gg, b)
 
 		if a < 4 {
 			continue

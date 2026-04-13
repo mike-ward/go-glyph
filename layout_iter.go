@@ -356,7 +356,7 @@ func extractLogAttrs(layout PangoLayoutW, text string) logAttrResult {
 	defer iter.Close()
 
 	attrs := make([]LogAttr, nAttrs)
-	for i := 0; i < nAttrs; i++ {
+	for i := range nAttrs {
 		pa := (*C.PangoLogAttr)(unsafe.Pointer(uintptr(unsafe.Pointer(attrsPtr)) + uintptr(i)*unsafe.Sizeof(*attrsPtr)))
 		attrs[i] = LogAttr{
 			IsCursorPosition: C.glyph_log_attr_is_cursor_position(pa) != 0,

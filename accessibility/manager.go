@@ -95,9 +95,7 @@ func (m *Manager) Commit() {
 }
 
 func (m *Manager) reset() {
-	for k := range m.nodes {
-		delete(m.nodes, k)
-	}
+	clear(m.nodes)
 	m.nextID = 1
 	m.rootID = m.nextNodeID()
 	m.nodes[m.rootID] = Node{
