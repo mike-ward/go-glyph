@@ -116,7 +116,7 @@ func parseFontDesc(style TextStyle) (string, float32) {
 
 	parts := strings.Fields(name)
 	if len(parts) == 0 {
-		return "Segoe UI", winMaxF(size, 12)
+		return "Segoe UI", max(size, 12)
 	}
 
 	// Strip trailing number (size).
@@ -178,11 +178,4 @@ func windowsFontDirs() []string {
 		dirs = append(dirs, filepath.Join(local, "Microsoft", "Windows", "Fonts"))
 	}
 	return dirs
-}
-
-func winMaxF(a, b float32) float32 {
-	if a > b {
-		return a
-	}
-	return b
 }

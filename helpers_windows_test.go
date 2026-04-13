@@ -134,12 +134,3 @@ func TestWinScaleFontSize(t *testing.T) {
 		t.Errorf("no size: got %q", got)
 	}
 }
-
-func TestWinMaxF(t *testing.T) {
-	if winMaxF(3, 5) != 5 {
-		t.Error("3,5")
-	}
-	if winMaxF(10, 2) != 10 {
-		t.Error("10,2")
-	}
-}
