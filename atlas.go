@@ -365,7 +365,7 @@ func copyBitmapToPage(page *AtlasPage, bmp Bitmap, x, y int) error {
 		return nil
 	}
 	rowBytes := bmp.Width * 4
-	for row := 0; row < bmp.Height; row++ {
+	for row := range bmp.Height {
 		srcOff := row * rowBytes
 		dstOff := ((y+row)*page.Width + x) * 4
 		copy(page.StagingBack[dstOff:dstOff+rowBytes], bmp.Data[srcOff:srcOff+rowBytes])

@@ -51,13 +51,13 @@ func FTBitmapToBitmap(bmp *C.FT_Bitmap, ftFace C.FT_Face, targetHeight int) (Bit
 
 	switch int(bmp.pixel_mode) {
 	case int(C.FT_PIXEL_MODE_GRAY):
-		for y := 0; y < height; y++ {
+		for y := range height {
 			srcY := y
 			if !pitchPositive {
 				srcY = height - 1 - y
 			}
 			row := unsafe.Add(bufPtr, srcY*absPitch)
-			for x := 0; x < width; x++ {
+			for x := range width {
 				val := *(*byte)(unsafe.Add(row, x))
 				i := (y*width + x) * 4
 				data[i+0] = 255
@@ -68,13 +68,13 @@ func FTBitmapToBitmap(bmp *C.FT_Bitmap, ftFace C.FT_Face, targetHeight int) (Bit
 		}
 
 	case int(C.FT_PIXEL_MODE_MONO):
-		for y := 0; y < height; y++ {
+		for y := range height {
 			srcY := y
 			if !pitchPositive {
 				srcY = height - 1 - y
 			}
 			row := unsafe.Add(bufPtr, srcY*absPitch)
-			for x := 0; x < width; x++ {
+			for x := range width {
 				b := *(*byte)(unsafe.Add(row, x>>3))
 				bit := 7 - (x & 7)
 				var val byte
@@ -97,13 +97,13 @@ func FTBitmapToBitmap(bmp *C.FT_Bitmap, ftFace C.FT_Face, targetHeight int) (Bit
 		newLen := logicalWidth * height * 4
 		data = make([]byte, newLen)
 
-		for y := 0; y < height; y++ {
+		for y := range height {
 			srcY := y
 			if !pitchPositive {
 				srcY = height - 1 - y
 			}
 			row := unsafe.Add(bufPtr, srcY*absPitch)
-			for x := 0; x < logicalWidth; x++ {
+			for x := range logicalWidth {
 				r := *(*byte)(unsafe.Add(row, x*3+0))
 				g := *(*byte)(unsafe.Add(row, x*3+1))
 				b := *(*byte)(unsafe.Add(row, x*3+2))
@@ -124,13 +124,13 @@ func FTBitmapToBitmap(bmp *C.FT_Bitmap, ftFace C.FT_Face, targetHeight int) (Bit
 				"emoji bitmap exceeds max size %dx%d: %dx%d",
 				MaxGlyphSize, MaxGlyphSize, width, height)
 		}
-		for y := 0; y < height; y++ {
+		for y := range height {
 			srcY := y
 			if !pitchPositive {
 				srcY = height - 1 - y
 			}
 			row := unsafe.Add(bufPtr, srcY*absPitch)
-			for x := 0; x < width; x++ {
+			for x := range width {
 				px := unsafe.Add(row, x*4)
 				i := (y*width + x) * 4
 				data[i+0] = *(*byte)(unsafe.Add(px, 2)) // R
