@@ -360,14 +360,7 @@ func transformLayoutPoint(transform AffineTransform,
 // gradientStripCount returns the number of horizontal strips to use
 // when rendering a vertical gradient within a single glyph.
 func gradientStripCount(glyphH float32) int {
-	n := int(glyphH + 0.5)
-	if n < 4 {
-		n = 4
-	}
-	if n > 16 {
-		n = 16
-	}
-	return n
+	return max(4, min(16, int(glyphH+0.5)))
 }
 
 func clamp01(v float32) float32 { return max(0, min(1, v)) }
