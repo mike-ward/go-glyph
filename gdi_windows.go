@@ -496,9 +496,9 @@ func downsample2x(src Bitmap) Bitmap {
 	dst := make([]byte, dstW*dstH*4)
 	srcStride := src.Width * 4
 
-	for y := 0; y < dstH; y++ {
+	for y := range dstH {
 		sy := y * 2
-		for x := 0; x < dstW; x++ {
+		for x := range dstW {
 			sx := x * 2
 
 			// Average alpha from 2x2 block.
