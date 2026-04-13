@@ -288,7 +288,7 @@ func (ctx *Context) buildLayout(text string, baseFont ftFont,
 	if cfg.Style.LetterSpacing != 0 {
 		spacing := float64(cfg.Style.LetterSpacing) *
 			float64(ctx.scaleFactor)
-		for i := 0; i < len(chars)-1; i++ {
+		for i := range len(chars) - 1 {
 			if chars[i].text == "\n" || chars[i].text == "\r" {
 				continue
 			}
@@ -429,8 +429,8 @@ func (ctx *Context) buildLayout(text string, baseFont ftFont,
 				return
 			}
 			var w float64
-			for g := itemStart; g < itemStart+gc; g++ {
-				w += allGlyphs[g].XAdvance
+			for _, gl := range allGlyphs[itemStart : itemStart+gc] {
+				w += gl.XAdvance
 			}
 			items = append(items, Item{
 				Style:                  cfg.Style,
@@ -518,9 +518,7 @@ func (ctx *Context) buildLayout(text string, baseFont ftFont,
 			},
 		})
 
-		if linePixelW > totalWidth {
-			totalWidth = linePixelW
-		}
+		totalWidth = max(totalWidth, linePixelW)
 		lineY += lineHeight
 		if cfg.Block.LineSpacing > 0 && lineIdx < len(lines)-1 {
 			lineY += float64(cfg.Block.LineSpacing) *

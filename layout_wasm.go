@@ -361,8 +361,8 @@ func (ctx *Context) buildLayout(text, cssFont string,
 				return
 			}
 			var w float64
-			for g := itemStart; g < itemStart+gc; g++ {
-				w += allGlyphs[g].XAdvance
+			for _, gl := range allGlyphs[itemStart : itemStart+gc] {
+				w += gl.XAdvance
 			}
 			items = append(items, Item{
 				CSSFont:                itemCSSFont,
@@ -459,9 +459,7 @@ func (ctx *Context) buildLayout(text, cssFont string,
 			},
 		})
 
-		if linePixelW > totalWidth {
-			totalWidth = linePixelW
-		}
+		totalWidth = max(totalWidth, linePixelW)
 		lineY += lineHeight
 		if cfg.Block.LineSpacing > 0 && lineIdx < len(lines)-1 {
 			lineY += float64(cfg.Block.LineSpacing) * float64(ctx.scaleFactor)

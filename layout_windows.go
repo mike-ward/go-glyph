@@ -4,7 +4,6 @@ package glyph
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"unicode/utf8"
 )
@@ -256,8 +255,8 @@ func (ctx *Context) buildLayout(text string, cfg TextConfig,
 				return
 			}
 			var w float64
-			for g := itemStart; g < itemStart+gc; g++ {
-				w += allGlyphs[g].XAdvance
+			for _, gl := range allGlyphs[itemStart : itemStart+gc] {
+				w += gl.XAdvance
 			}
 			c := baseColor
 			hasBg := cfg.Style.BgColor.A > 0
@@ -417,9 +416,7 @@ func (ctx *Context) buildLayout(text string, cfg TextConfig,
 
 	totalWidth := 0.0
 	for _, line := range lines {
-		if line.width > totalWidth {
-			totalWidth = line.width
-		}
+		totalWidth = max(totalWidth, line.width)
 	}
 
 	result := Layout{
@@ -434,7 +431,7 @@ func (ctx *Context) buildLayout(text string, cfg TextConfig,
 		Width:           float32(totalWidth * pixelScale),
 		Height:          float32(penY * pixelScale),
 		VisualWidth:     float32(totalWidth * pixelScale),
-		VisualHeight:    float32(math.Max(penY, 0) * pixelScale),
+		VisualHeight:    float32(max(penY, 0) * pixelScale),
 	}
 	result.buildPositionCaches()
 	return result
