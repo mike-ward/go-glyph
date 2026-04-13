@@ -119,9 +119,7 @@ func (l *Layout) GetClosestOffset(x, y float32) int {
 			}
 			cr := l.CharRects[ri]
 			right := cr.Rect.X + cr.Rect.Width
-			if right > lastRight {
-				lastRight = right
-			}
+			lastRight = max(lastRight, right)
 		}
 		if lastRight > 0 && x > lastRight {
 			if _, ok := l.LogAttrByIndex[lineEnd]; ok {
@@ -149,14 +147,8 @@ func (l *Layout) GetSelectionRects(start, end int) []Rect {
 	var rects []Rect
 	for _, line := range l.Lines {
 		lineEnd := line.StartIndex + line.Length
-		overlapStart := s
-		if line.StartIndex > overlapStart {
-			overlapStart = line.StartIndex
-		}
-		overlapEnd := end
-		if lineEnd < overlapEnd {
-			overlapEnd = lineEnd
-		}
+		overlapStart := max(s, line.StartIndex)
+		overlapEnd := min(end, lineEnd)
 		if overlapStart >= overlapEnd {
 			continue
 		}
@@ -170,13 +162,9 @@ func (l *Layout) GetSelectionRects(start, end int) []Rect {
 				continue
 			}
 			cr := l.CharRects[ri]
-			if cr.Rect.X < minX {
-				minX = cr.Rect.X
-			}
+			minX = min(minX, cr.Rect.X)
 			right := cr.Rect.X + cr.Rect.Width
-			if right > maxX {
-				maxX = right
-			}
+			maxX = max(maxX, right)
 			found = true
 		}
 		if found {
@@ -543,12 +531,7 @@ func (l *Layout) GetParagraphAtIndex(byteIndex int, text string) (int, int) {
 	if len(text) == 0 {
 		return 0, 0
 	}
-	idx := byteIndex
-	if idx < 0 {
-		idx = 0
-	} else if idx > len(text) {
-		idx = len(text)
-	}
+	idx := max(0, min(byteIndex, len(text)))
 
 	// Scan backwards for paragraph start.
 	paraStart := 0
