@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-04-13
+
+### Changed
+
+- Modernize codebase with Go 1.26 idioms: min/max builtins, for-range loops,
+  clear(), variadic max(), deleted redundant helpers
+
 ## [1.6.4] - 2026-04-08
 
 ### Added
