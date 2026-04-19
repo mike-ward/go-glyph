@@ -212,11 +212,11 @@ type DrawBackend interface {
 
 ## Backends
 
-| Backend | Package | Notes |
-|---------|---------|-------|
-| Ebitengine | `go-glyph/backend/ebitengine` | Pure Go game engine |
-| SDL2 | `go-glyph/backend/sdl2` | SDL2 renderer |
-| GPU | `go-glyph/backend/gpu` | Metal (macOS), OpenGL 3.3 (Linux/Windows) |
+| Backend    | Package                       | Notes                                     |
+| ---------- | ----------------------------- | ----------------------------------------- |
+| Ebitengine | `go-glyph/backend/ebitengine` | Pure Go game engine                       |
+| SDL2       | `go-glyph/backend/sdl2`       | SDL2 renderer                             |
+| GPU        | `go-glyph/backend/gpu`        | Metal (macOS), OpenGL 3.3 (Linux/Windows) |
 
 Each backend has its own `go.mod` with framework-specific
 dependencies. Import the one matching the target framework.
@@ -508,12 +508,12 @@ word echo, line changes, selection changes) with debouncing.
 
 ## Examples
 
-| Example | Description |
-|---------|-------------|
-| `examples/demo` | Ebitengine demo - basic text, styles, wrapping, emoji, CJK, RTL |
-| `examples/demo_sdl2` | Same demo using SDL2 backend |
-| `examples/demo_gpu` | Same demo using GPU backend (Metal/OpenGL) |
-| `examples/showcase_gpu` | Feature gallery (22 sections) |
+| Example                 | Description                                                     |
+| ----------------------- | --------------------------------------------------------------- |
+| `examples/demo`         | Ebitengine demo - basic text, styles, wrapping, emoji, CJK, RTL |
+| `examples/demo_sdl2`    | Same demo using SDL2 backend                                    |
+| `examples/demo_gpu`     | Same demo using GPU backend (Metal/OpenGL)                      |
+| `examples/showcase_gpu` | Feature gallery (22 sections)                                   |
 
 Run an example:
 
