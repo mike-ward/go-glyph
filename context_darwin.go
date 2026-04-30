@@ -1,4 +1,4 @@
-//go:build ios
+//go:build darwin && !glyph_pango
 
 package glyph
 
@@ -97,9 +97,10 @@ func (ctx *Context) FontMetrics(cfg TextConfig) (TextMetrics, error) {
 	}, nil
 }
 
-// ResolveFontName returns the resolved iOS font family name.
+// ResolveFontName returns the resolved Darwin (macOS / iOS) font
+// family name.
 func (ctx *Context) ResolveFontName(fontDescStr string) (string, error) {
-	family := resolveFontFamilyIOS(fontDescStr)
+	family := resolveFontFamilyDarwin(fontDescStr)
 	return family, nil
 }
 

@@ -1,4 +1,4 @@
-//go:build !js && !ios && !android && !windows
+//go:build !js && !android && !windows && (!darwin || glyph_pango)
 
 package glyph
 

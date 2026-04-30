@@ -1,4 +1,4 @@
-//go:build ios
+//go:build darwin && !glyph_pango
 
 package glyph
 
@@ -51,7 +51,7 @@ func TestParseFamilyFromFontName(t *testing.T) {
 	}
 }
 
-func TestResolveFontFamilyIOS(t *testing.T) {
+func TestResolveFontFamilyDarwin(t *testing.T) {
 	tests := []struct {
 		name string
 		want string
@@ -66,9 +66,9 @@ func TestResolveFontFamilyIOS(t *testing.T) {
 		{"", ".AppleSystemUIFont"},
 	}
 	for _, tt := range tests {
-		got := resolveFontFamilyIOS(tt.name)
+		got := resolveFontFamilyDarwin(tt.name)
 		if got != tt.want {
-			t.Errorf("resolveFontFamilyIOS(%q) = %q, want %q",
+			t.Errorf("resolveFontFamilyDarwin(%q) = %q, want %q",
 				tt.name, got, tt.want)
 		}
 	}

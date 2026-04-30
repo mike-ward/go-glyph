@@ -1,4 +1,4 @@
-//go:build ios
+//go:build darwin && !glyph_pango
 
 package glyph
 
@@ -52,7 +52,7 @@ type ctFont struct {
 func resolveCTFontParams(style TextStyle, scaleFactor float32) (
 	family string, size float64, bold, italic bool,
 ) {
-	family = resolveFontFamilyIOS(style.FontName)
+	family = resolveFontFamilyDarwin(style.FontName)
 
 	rawSize := style.Size
 	if rawSize <= 0 {
@@ -107,9 +107,11 @@ func (f ctFont) metrics() (ascent, descent, leading float64) {
 	return float64(a), float64(d), float64(l)
 }
 
-// resolveFontFamilyIOS maps generic Pango-style font names to
-// iOS system font families.
-func resolveFontFamilyIOS(fontName string) string {
+// resolveFontFamilyDarwin maps generic Pango-style font names to
+// macOS / iOS system font families. SF Mono ships in 10.15+; older
+// macOS targets fall back to Menlo via CoreText's font matcher when
+// "SF Mono" is unavailable.
+func resolveFontFamilyDarwin(fontName string) string {
 	family := parseFamilyFromFontName(fontName)
 	if family == "" {
 		return ".AppleSystemUIFont"
