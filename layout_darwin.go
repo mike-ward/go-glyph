@@ -101,13 +101,38 @@ func (ctx *Context) LayoutRichText(rt RichText,
 		f := ctx.createCTFont(merged)
 		var yShift, xPad float64
 
-		// Sub/superscript "subs" / "sups" are passed straight through
-		// to CoreText via kCTFontOpenTypeFeatureTag in newCTFont. The
-		// font's own OT subs/sups feature substitutes alternate
-		// glyphs at the correct size and baseline. No size-scaling
-		// or yShift hack here, matching pango/harfbuzz behavior.
-		_ = yShift
-		_ = xPad
+		// Sub/superscript fallback: most system fonts lack OT
+		// subs/sups glyph substitution, so scale the font down and
+		// shift the baseline to render visibly. Callers that set
+		// Size *= 1.2 before requesting subs/sups (e.g. markdown
+		// styling) end up at ~0.7x base size, matching the
+		// expected typographic ratio.
+		if resolved.Features != nil {
+			baseSize := float64(parseSizeFromStyle(resolved))
+			for _, feat := range resolved.Features.OpenTypeFeatures {
+				if feat.Value != 1 {
+					continue
+				}
+				switch feat.Tag {
+				case "subs":
+					small := resolved
+					small.Size = float32(baseSize * 0.58)
+					resolved = small
+					f.close()
+					f = ctx.createCTFont(small)
+					yShift = -baseSize * 0.15
+					xPad = baseSize * 0.08
+				case "sups":
+					small := resolved
+					small.Size = float32(baseSize * 0.58)
+					resolved = small
+					f.close()
+					f = ctx.createCTFont(small)
+					yShift = baseSize * 0.4
+					xPad = baseSize * 0.08
+				}
+			}
+		}
 
 		fullText.WriteString(run.Text)
 		runs = append(runs, runRange{
