@@ -91,6 +91,53 @@ static CTFontRef ctApplyOpenTypeFeatures(CTFontRef base,
     }
     return base;
 }
+
+// ctApplyVariationAxes returns a copy of base with variable-font axis
+// values applied via kCTFontVariationAttribute. tagsBlob is count*4
+// bytes of ASCII tag chars; values is count floats. Releases base on
+// success and returns the styled copy. Returns base unchanged on
+// failure.
+static CTFontRef ctApplyVariationAxes(CTFontRef base,
+    const char *tagsBlob, const float *values, int count) {
+    if (!base || count <= 0) {
+        return base;
+    }
+    CFMutableDictionaryRef dict = CFDictionaryCreateMutable(NULL, count,
+        &kCFTypeDictionaryKeyCallBacks,
+        &kCFTypeDictionaryValueCallBacks);
+    for (int i = 0; i < count; i++) {
+        uint32_t tagBE = ((uint32_t)(unsigned char)tagsBlob[i*4+0])<<24
+                       | ((uint32_t)(unsigned char)tagsBlob[i*4+1])<<16
+                       | ((uint32_t)(unsigned char)tagsBlob[i*4+2])<<8
+                       | ((uint32_t)(unsigned char)tagsBlob[i*4+3]);
+        int tagInt = (int)tagBE;
+        CFNumberRef cKey = CFNumberCreate(NULL, kCFNumberIntType, &tagInt);
+        float v = values[i];
+        CFNumberRef cVal = CFNumberCreate(NULL, kCFNumberFloatType, &v);
+        CFDictionarySetValue(dict, cKey, cVal);
+        CFRelease(cKey);
+        CFRelease(cVal);
+    }
+    const void *attrKeys[1] = {
+        (const void *)kCTFontVariationAttribute,
+    };
+    const void *attrVals[1] = { dict };
+    CFDictionaryRef attrs = CFDictionaryCreate(NULL,
+        attrKeys, attrVals, 1,
+        &kCFTypeDictionaryKeyCallBacks,
+        &kCFTypeDictionaryValueCallBacks);
+    CTFontDescriptorRef desc = CTFontDescriptorCreateWithAttributes(attrs);
+    CFRelease(dict);
+    CFRelease(attrs);
+    CTFontRef styled = CTFontCreateCopyWithAttributes(base,
+        CTFontGetSize(base), NULL, desc);
+    CFRelease(desc);
+    if (styled) {
+        CFRelease(base);
+        return styled;
+    }
+    return base;
+}
 */
 import "C"
 import (
@@ -145,6 +192,7 @@ func newCTFont(style TextStyle, scaleFactor float32) ctFont {
 		C.bool(bold), C.bool(italic))
 	if ref != 0 && style.Features != nil {
 		ref = applyOpenTypeFeatures(ref, style.Features.OpenTypeFeatures)
+		ref = applyVariationAxes(ref, style.Features.VariationAxes)
 	}
 	return ctFont{ref: ref}
 }
@@ -186,6 +234,40 @@ func applyOpenTypeFeatures(base C.CTFontRef, feats []FontFeature) C.CTFontRef {
 	return C.ctApplyOpenTypeFeatures(base,
 		(*C.char)(unsafe.Pointer(&tags[0])),
 		(*C.int)(unsafe.Pointer(&vals[0])),
+		C.int(count))
+}
+
+// applyVariationAxes applies variable-font axis settings (e.g.
+// wght=600, wdth=110, opsz=12) via kCTFontVariationAttribute.
+// Returns the styled CTFontRef (may equal base on failure or empty
+// input). Tags shorter than 4 chars are space-padded; longer tags
+// are truncated to the first 4 chars.
+func applyVariationAxes(base C.CTFontRef, axes []FontAxis) C.CTFontRef {
+	if len(axes) == 0 {
+		return base
+	}
+	tags := make([]byte, 0, len(axes)*4)
+	vals := make([]C.float, 0, len(axes))
+	for _, a := range axes {
+		t := a.Tag
+		switch len(t) {
+		case 4:
+			tags = append(tags, t[0], t[1], t[2], t[3])
+		case 0, 1, 2, 3:
+			padded := []byte(t + "    ")[:4]
+			tags = append(tags, padded...)
+		default:
+			tags = append(tags, t[0], t[1], t[2], t[3])
+		}
+		vals = append(vals, C.float(a.Value))
+	}
+	count := len(vals)
+	if count == 0 {
+		return base
+	}
+	return C.ctApplyVariationAxes(base,
+		(*C.char)(unsafe.Pointer(&tags[0])),
+		(*C.float)(unsafe.Pointer(&vals[0])),
 		C.int(count))
 }
 

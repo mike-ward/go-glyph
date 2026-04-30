@@ -47,10 +47,12 @@ import (
 // charFontOverride holds per-character font and position adjustments
 // for rich text runs.
 type charFontOverride struct {
-	font   ctFont
-	style  TextStyle
-	yShift float64
-	xPad   float64
+	font        ctFont
+	style       TextStyle
+	yShift      float64
+	xPad        float64
+	objectWidth float64 // Inline-object reserved width (scaled px). 0 = not an object.
+	objectID    string
 }
 
 // LayoutText shapes and wraps text using Core Text.
@@ -86,15 +88,18 @@ func (ctx *Context) LayoutRichText(rt RichText,
 
 	var fullText strings.Builder
 	type runRange struct {
-		start, end int
-		style      TextStyle
-		resolved   TextStyle
-		font       ctFont
-		yShift     float64
-		xPad       float64
+		start, end  int
+		style       TextStyle
+		resolved    TextStyle
+		font        ctFont
+		yShift      float64
+		xPad        float64
+		objectWidth float64
+		objectID    string
 	}
 	runs := make([]runRange, 0, len(rt.Runs))
 	idx := 0
+	const objectReplacement = "￼" // 3 UTF-8 bytes.
 	for _, run := range rt.Runs {
 		merged := mergeStyles(cfg.Style, run.Style)
 		resolved := merged
@@ -134,13 +139,30 @@ func (ctx *Context) LayoutRichText(rt RichText,
 			}
 		}
 
-		fullText.WriteString(run.Text)
+		runText := run.Text
+		var objectWidth float64
+		var objectID string
+		if run.Style.Object != nil {
+			// Replace run text with a single OBJECT REPLACEMENT
+			// CHARACTER (U+FFFC). Width is taken from the
+			// InlineObject; baseline offset becomes yShift.
+			runText = objectReplacement
+			objectWidth = float64(run.Style.Object.Width) *
+				float64(ctx.scaleFactor)
+			objectID = run.Style.Object.ID
+			yShift = float64(run.Style.Object.Offset) *
+				float64(ctx.scaleFactor)
+			xPad = 0
+		}
+
+		fullText.WriteString(runText)
 		runs = append(runs, runRange{
-			start: idx, end: idx + len(run.Text),
+			start: idx, end: idx + len(runText),
 			style: run.Style, resolved: resolved, font: f,
 			yShift: yShift, xPad: xPad,
+			objectWidth: objectWidth, objectID: objectID,
 		})
-		idx += len(run.Text)
+		idx += len(runText)
 	}
 	text := fullText.String()
 
@@ -151,10 +173,12 @@ func (ctx *Context) LayoutRichText(rt RichText,
 	for _, r := range runs {
 		for i := r.start; i < r.end; {
 			overrides[i] = charFontOverride{
-				font:   r.font,
-				style:  r.resolved,
-				yShift: r.yShift,
-				xPad:   r.xPad,
+				font:        r.font,
+				style:       r.resolved,
+				yShift:      r.yShift,
+				xPad:        r.xPad,
+				objectWidth: r.objectWidth,
+				objectID:    r.objectID,
 			}
 			_, sz := utf8.DecodeRuneInString(text[i:])
 			i += sz
@@ -218,6 +242,10 @@ func (ctx *Context) LayoutRichText(rt RichText,
 				}
 				if r.style.Strikethrough {
 					sub.HasStrikethrough = true
+				}
+				if r.style.Object != nil {
+					sub.IsObject = true
+					sub.ObjectID = r.objectID
 				}
 			}
 			newItems = append(newItems, sub)
@@ -301,7 +329,7 @@ func (ctx *Context) buildLayout(text string, baseFont ctFont,
 	clusters := segmentGraphemes(text)
 	chars := make([]charInfo, 0, len(clusters))
 	for _, cl := range clusters {
-		var yShift, xPad float64
+		var yShift, xPad, objectWidth float64
 		measureFont := baseFont
 		if overrides != nil {
 			if ov, ok := overrides[cl.byteI]; ok {
@@ -310,19 +338,29 @@ func (ctx *Context) buildLayout(text string, baseFont ctFont,
 				}
 				yShift = ov.yShift
 				xPad = ov.xPad
+				objectWidth = ov.objectWidth
 			}
 		}
 
 		var w float64
-		if cl.text == "\n" || cl.text == "\r" {
+		switch {
+		case cl.text == "\n" || cl.text == "\r":
 			w = 0
-		} else {
+		case objectWidth > 0:
+			// Inline object: skip CT measurement, use the
+			// caller-supplied reservation width directly.
+			w = objectWidth
+		default:
 			cs := C.CString(cl.text)
 			w = float64(C.ctMeasureCString(measureFont.ref, cs))
 			C.free(unsafe.Pointer(cs))
 		}
+		totalW := w
+		if objectWidth == 0 {
+			totalW = w + xPad*float64(ctx.scaleFactor)
+		}
 		chars = append(chars, charInfo{
-			text: cl.text, width: w + xPad*float64(ctx.scaleFactor),
+			text: cl.text, width: totalW,
 			byteI: cl.byteI, byteL: cl.byteL,
 			yShift: yShift, xPad: xPad,
 		})
