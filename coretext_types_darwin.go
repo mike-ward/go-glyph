@@ -37,6 +37,60 @@ static void ctFontGetMetrics(CTFontRef font,
     *descent = CTFontGetDescent(font);
     *leading = CTFontGetLeading(font);
 }
+
+// ctApplyOpenTypeFeatures returns a copy of base with the supplied
+// OpenType feature tags applied. tagsBlob is count*4 bytes of ASCII
+// tag chars; values is count int32 enable values. Releases base on
+// success and returns the styled copy. Returns base unchanged on
+// failure.
+static CTFontRef ctApplyOpenTypeFeatures(CTFontRef base,
+    const char *tagsBlob, const int *values, int count) {
+    if (!base || count <= 0) {
+        return base;
+    }
+    CFMutableArrayRef arr = CFArrayCreateMutable(NULL, count,
+        &kCFTypeArrayCallBacks);
+    for (int i = 0; i < count; i++) {
+        char tag[5];
+        memcpy(tag, tagsBlob + i*4, 4);
+        tag[4] = 0;
+        CFStringRef cTag = CFStringCreateWithCString(NULL, tag,
+            kCFStringEncodingASCII);
+        int v = values[i];
+        CFNumberRef cVal = CFNumberCreate(NULL, kCFNumberIntType, &v);
+        const void *keys[2] = {
+            (const void *)kCTFontOpenTypeFeatureTag,
+            (const void *)kCTFontOpenTypeFeatureValue,
+        };
+        const void *vals[2] = { cTag, cVal };
+        CFDictionaryRef d = CFDictionaryCreate(NULL, keys, vals, 2,
+            &kCFTypeDictionaryKeyCallBacks,
+            &kCFTypeDictionaryValueCallBacks);
+        CFArrayAppendValue(arr, d);
+        CFRelease(cTag);
+        CFRelease(cVal);
+        CFRelease(d);
+    }
+    const void *attrKeys[1] = {
+        (const void *)kCTFontFeatureSettingsAttribute,
+    };
+    const void *attrVals[1] = { arr };
+    CFDictionaryRef attrs = CFDictionaryCreate(NULL,
+        attrKeys, attrVals, 1,
+        &kCFTypeDictionaryKeyCallBacks,
+        &kCFTypeDictionaryValueCallBacks);
+    CTFontDescriptorRef desc = CTFontDescriptorCreateWithAttributes(attrs);
+    CFRelease(arr);
+    CFRelease(attrs);
+    CTFontRef styled = CTFontCreateCopyWithAttributes(base,
+        CTFontGetSize(base), NULL, desc);
+    CFRelease(desc);
+    if (styled) {
+        CFRelease(base);
+        return styled;
+    }
+    return base;
+}
 */
 import "C"
 import (
@@ -89,7 +143,49 @@ func newCTFont(style TextStyle, scaleFactor float32) ctFont {
 	ref := C.ctCreateFont(cFamily,
 		C.CGFloat(size),
 		C.bool(bold), C.bool(italic))
+	if ref != 0 && style.Features != nil {
+		ref = applyOpenTypeFeatures(ref, style.Features.OpenTypeFeatures)
+	}
 	return ctFont{ref: ref}
+}
+
+// applyOpenTypeFeatures applies user-supplied OpenType feature tags
+// (e.g. liga, tnum, calt) to the font via
+// kCTFontFeatureSettingsAttribute. Returns the styled CTFontRef
+// (may equal base on failure or empty input). The "subs" / "sups"
+// tags are skipped here because LayoutRichText handles them by
+// scaling the font size and shifting the baseline; passing them
+// through to CoreText as well would double-apply.
+func applyOpenTypeFeatures(base C.CTFontRef, feats []FontFeature) C.CTFontRef {
+	if len(feats) == 0 {
+		return base
+	}
+	tags := make([]byte, 0, len(feats)*4)
+	vals := make([]C.int, 0, len(feats))
+	for _, f := range feats {
+		if f.Tag == "subs" || f.Tag == "sups" {
+			continue
+		}
+		t := f.Tag
+		switch len(t) {
+		case 4:
+			tags = append(tags, t[0], t[1], t[2], t[3])
+		case 0, 1, 2, 3:
+			padded := []byte(t + "    ")[:4]
+			tags = append(tags, padded...)
+		default:
+			tags = append(tags, t[0], t[1], t[2], t[3])
+		}
+		vals = append(vals, C.int(f.Value))
+	}
+	count := len(vals)
+	if count == 0 {
+		return base
+	}
+	return C.ctApplyOpenTypeFeatures(base,
+		(*C.char)(unsafe.Pointer(&tags[0])),
+		(*C.int)(unsafe.Pointer(&vals[0])),
+		C.int(count))
 }
 
 // close releases the CTFont.
