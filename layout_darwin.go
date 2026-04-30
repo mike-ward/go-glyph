@@ -116,20 +116,20 @@ func (ctx *Context) LayoutRichText(rt RichText,
 				switch feat.Tag {
 				case "subs":
 					small := resolved
-					small.Size = float32(baseSize * 0.58)
+					small.Size = float32(baseSize * 0.5)
 					resolved = small
 					f.close()
 					f = ctx.createCTFont(small)
 					yShift = -baseSize * 0.15
-					xPad = baseSize * 0.08
+					xPad = baseSize * 0.15
 				case "sups":
 					small := resolved
-					small.Size = float32(baseSize * 0.58)
+					small.Size = float32(baseSize * 0.5)
 					resolved = small
 					f.close()
 					f = ctx.createCTFont(small)
 					yShift = baseSize * 0.4
-					xPad = baseSize * 0.08
+					xPad = baseSize * 0.15
 				}
 			}
 		}
@@ -163,29 +163,84 @@ func (ctx *Context) LayoutRichText(rt RichText,
 
 	layout := ctx.buildLayout(text, baseFont, cfg, overrides)
 
-	// Apply per-run styles to items.
-	for i := range layout.Items {
-		item := &layout.Items[i]
-		for _, r := range runs {
-			if item.StartIndex >= r.start && item.StartIndex < r.end {
-				item.Style = r.resolved
-				if r.style.Color.A > 0 {
-					item.Color = r.style.Color
-				}
-				if r.style.BgColor.A > 0 {
-					item.BgColor = r.style.BgColor
-					item.HasBgColor = true
-				}
-				if r.style.Underline {
-					item.HasUnderline = true
-				}
-				if r.style.Strikethrough {
-					item.HasStrikethrough = true
-				}
-				break
+	// buildLayout produces one Item per line. To honor per-run
+	// styles (sub/sup font scaling, run colors, underline,
+	// strikethrough, background) the per-line Items must be split
+	// at run boundaries so each sub-Item carries the correct
+	// resolved Style. Without this split, glyph rasterization —
+	// which keys off Item.Style — would render every run at the
+	// first run's font size.
+	findRun := func(byteIdx int) *runRange {
+		for i := range runs {
+			if byteIdx >= runs[i].start && byteIdx < runs[i].end {
+				return &runs[i]
 			}
 		}
+		return nil
 	}
+
+	newItems := make([]Item, 0, len(layout.Items))
+	for _, item := range layout.Items {
+		if item.GlyphCount == 0 {
+			newItems = append(newItems, item)
+			continue
+		}
+		glyphs := layout.Glyphs[item.GlyphStart : item.GlyphStart+item.GlyphCount]
+
+		flush := func(chunkStart, chunkEnd int, x float64, r *runRange) {
+			if chunkEnd <= chunkStart {
+				return
+			}
+			sub := item
+			sub.GlyphStart = item.GlyphStart + chunkStart
+			sub.GlyphCount = chunkEnd - chunkStart
+			var w float64
+			for _, g := range glyphs[chunkStart:chunkEnd] {
+				w += g.XAdvance
+			}
+			sub.Width = w
+			sub.X = x
+			firstByte := int(glyphs[chunkStart].Index)
+			lastByte := int(glyphs[chunkEnd-1].Index)
+			sub.StartIndex = firstByte
+			sub.Length = lastByte - firstByte + 1
+			if r != nil {
+				sub.Style = r.resolved
+				if r.style.Color.A > 0 {
+					sub.Color = r.style.Color
+				}
+				if r.style.BgColor.A > 0 {
+					sub.BgColor = r.style.BgColor
+					sub.HasBgColor = true
+				}
+				if r.style.Underline {
+					sub.HasUnderline = true
+				}
+				if r.style.Strikethrough {
+					sub.HasStrikethrough = true
+				}
+			}
+			newItems = append(newItems, sub)
+		}
+
+		curRun := findRun(int(glyphs[0].Index))
+		chunkStart := 0
+		chunkX := item.X
+		chunkW := 0.0
+		for gi, g := range glyphs {
+			r := findRun(int(g.Index))
+			if r != curRun && gi > chunkStart {
+				flush(chunkStart, gi, chunkX, curRun)
+				chunkX += chunkW
+				chunkStart = gi
+				chunkW = 0
+				curRun = r
+			}
+			chunkW += g.XAdvance
+		}
+		flush(chunkStart, len(glyphs), chunkX, curRun)
+	}
+	layout.Items = newItems
 
 	// Clean up run fonts.
 	for _, r := range runs {
