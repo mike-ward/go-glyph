@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-30
+
+### Added
+
+- Darwin: CoreText backend is now the default; legacy Pango path moved
+  behind the `glyph_pango` build tag
+- Darwin: arbitrary OpenType feature tags forwarded to CoreText
+- Darwin: font variation axes and inline-object placeholders
+- Darwin: per-run style by splitting per-line Items at run boundaries
+
+### Fixed
+
+- Darwin: preserve RGB channels for color emoji
+- Darwin: pass sub/sup OpenType features through to CoreText
+- Darwin: restore sub/sup size-scaling fallback
+- README.md formatting
+
+### Changed
+
+- Darwin: drop dead types, gate metrics cache helpers behind build tag
+
 ## [1.6.5] - 2026-04-13
 
 ### Changed
