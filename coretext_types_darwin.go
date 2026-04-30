@@ -150,12 +150,9 @@ func newCTFont(style TextStyle, scaleFactor float32) ctFont {
 }
 
 // applyOpenTypeFeatures applies user-supplied OpenType feature tags
-// (e.g. liga, tnum, calt) to the font via
+// (e.g. liga, tnum, calt, subs, sups) to the font via
 // kCTFontFeatureSettingsAttribute. Returns the styled CTFontRef
-// (may equal base on failure or empty input). The "subs" / "sups"
-// tags are skipped here because LayoutRichText handles them by
-// scaling the font size and shifting the baseline; passing them
-// through to CoreText as well would double-apply.
+// (may equal base on failure or empty input).
 func applyOpenTypeFeatures(base C.CTFontRef, feats []FontFeature) C.CTFontRef {
 	if len(feats) == 0 {
 		return base
@@ -163,9 +160,6 @@ func applyOpenTypeFeatures(base C.CTFontRef, feats []FontFeature) C.CTFontRef {
 	tags := make([]byte, 0, len(feats)*4)
 	vals := make([]C.int, 0, len(feats))
 	for _, f := range feats {
-		if f.Tag == "subs" || f.Tag == "sups" {
-			continue
-		}
 		t := f.Tag
 		switch len(t) {
 		case 4:

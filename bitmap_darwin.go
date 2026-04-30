@@ -221,13 +221,28 @@ func loadGlyphCG(atlas *GlyphAtlas, ch string, item Item,
 	}
 	goData := C.GoBytes(data, C.int(bmpSize))
 
-	// Convert premultiplied RGBA to white + alpha for tinting.
+	// Color glyphs (e.g. Apple Color Emoji sbix) carry RGB
+	// information that must be preserved. Monochrome glyphs are
+	// rendered white-on-transparent here so the renderer can tint
+	// them with item.Color at draw time. Detect color by scanning
+	// for any pixel whose channels disagree; if found, leave the
+	// bitmap as the rasterizer wrote it.
+	hasColor := false
 	for i := 0; i < len(goData); i += 4 {
-		a := goData[i+3]
-		goData[i+0] = 255
-		goData[i+1] = 255
-		goData[i+2] = 255
-		goData[i+3] = a
+		r, g, b := goData[i+0], goData[i+1], goData[i+2]
+		if r != g || g != b {
+			hasColor = true
+			break
+		}
+	}
+	if !hasColor {
+		for i := 0; i < len(goData); i += 4 {
+			a := goData[i+3]
+			goData[i+0] = 255
+			goData[i+1] = 255
+			goData[i+2] = 255
+			goData[i+3] = a
+		}
 	}
 
 	bmp := Bitmap{
